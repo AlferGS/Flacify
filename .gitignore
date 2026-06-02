@@ -1,0 +1,7 @@
+venv/
+.venv/
+app/__pycache__/
+__pycache__/
+*.pyc
+music/
+config.json

@@ -1,12 +1,19 @@
 import sys
 from PyQt5.QtWidgets import QApplication
 from app.MainFluentWindow import MainFluentWindow
+from PyQt5.QtGui import QFont, QColor
 
 def main(*args,**kwargs):
     print('__main__: start application')
     try:
-        app = QApplication(sys.argv)        
+        app = QApplication(sys.argv)
+        
+        font = QFont("Circular", 10)
+        app.setFont(font)
+
         main_app = MainFluentWindow()
+        main_app.setStyleSheet("background-color: #000000")
+        main_app.setBackgroundColor(QColor("#000000"))
         main_app.show()
 
 
