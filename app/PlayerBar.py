@@ -36,7 +36,6 @@ class PlayerBar(QWidget):
         layout.setContentsMargins(15, 5, 15, 5)
         layout.setSpacing(10)
         
-        
         info_layout = self.__create_info_panel()
         control_layout = self.__create_control_panel()
         vol_layout = self.__create_volume_panel()
@@ -83,7 +82,7 @@ class PlayerBar(QWidget):
         btns = QHBoxLayout()
 
         # ------------------------------------------------------
-        # Add Shuffle queue button
+        # Add Shuffle queue button FIF.SYNC
         # ------------------------------------------------------
 
         prev_button = TransparentToolButton(FIF.CARE_LEFT_SOLID)
@@ -106,7 +105,7 @@ class PlayerBar(QWidget):
         next_button = TransparentToolButton(FIF.CARE_RIGHT_SOLID)
 
         # ------------------------------------------------------
-        # Add Repeat button
+        # Add Repeat button FIF.ROTATE
         # ------------------------------------------------------
         
         btns.addStretch()

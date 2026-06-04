@@ -42,7 +42,6 @@ class SettinsWindow(QWidget):
         self.vbox.addLayout(save_config_layout)
 
 
-
     def __create_path_layout(self) -> QHBoxLayout:
         path_layout = QHBoxLayout()
         path_layout.setAlignment(Qt.AlignLeft)
@@ -78,6 +77,13 @@ class SettinsWindow(QWidget):
         return path_layout
 
 
+    def __get_root_path(self) -> str:
+        config_file = "config.json"
+
+        
+        return ""
+
+
     def __create_save_config_layout(self) -> QHBoxLayout:
         save_config_layout = QHBoxLayout()
         # Save btn
@@ -97,15 +103,16 @@ class SettinsWindow(QWidget):
 
     def show_dialog(self):
         # Open file dialog
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Open File', '', 'All Files (*)')
-        if file_path: self.path_lineedit.setText(f' {file_path}')
+        file_path = QFileDialog.getExistingDirectory(self, 'Open File', '')
+        # file_path, _ = QFileDialog.getOpenFileName(self, 'Open File', '', 'All Files (*)')
+        if file_path: self.path_lineedit.setText(f'{file_path}')
 
 
     def __on_save_btn_clicked(self):
-        path_ = os.path.dirname(self.path_lineedit.text())
+        path_ = self.path_lineedit.text()
         config_file = "config.json"
 
-        if not os.path.isdir(path_):
+        if not os.path.exists(path_):
             # вернуть error
             print("Ошибка: Папка не существует")
             return
