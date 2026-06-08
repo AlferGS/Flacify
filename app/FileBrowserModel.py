@@ -1,16 +1,31 @@
 import os
 import json
-os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "HIDE"
 from pathlib import Path
-from pygame import mixer, error as pyerror
+from  AudioPlayerController import AudioPlayerController
 
 class FileBrowserModel():
     def __init__(self):
-        mixer.init()
-        
         self.config = self.__load_config()
         self.current_pos = self.root_path
+        self.audio_player: AudioPlayerController | None = None
 
+
+    def __load_config(self) -> dict:
+        config_path = Path("config.json")
+        if not config_path.exists():
+            print("Config file not exist")
+            raise FileNotFoundError("Config file not exist")
+        
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+
+        except Exception as e:
+            print(f"Can't open config file {e}")
+            raise Exception(e)            
+
+        return config
+    
 
     @property
     def root_path(self) -> Path:
@@ -30,28 +45,12 @@ class FileBrowserModel():
         return self.config.get("library", "").get("supported_formats", [])
 
 
-    def __load_config(self) -> dict:
-        if not Path("config.json").exists():
-            print("Config file not exist")
-            raise FileNotFoundError("Config file not exist")
-        
-        try:
-            with open("config.json", 'r', encoding='utf-8') as f:
-                config = json.load(f)
-
-        except Exception as e:
-            print(f"Can't open config file {e}")
-            raise Exception(e)            
-
-        return config
-    
-
-    def get_dir(self) -> dict:
+    @property
+    def current_dir(self) -> dict[int,Path]:
         current_dir = dict()
         index = 0
 
         for file in self.current_pos.iterdir():
-
             if self.is_supported(file):
                 current_dir[index] = file.name
                 index += 1
@@ -68,22 +67,39 @@ class FileBrowserModel():
             return False
 
 
-    def open_file(self, path:Path) -> None:
-        assume_path = self.current_pos / path
+    def open_file(self, index:int) -> None:
+        #if index not in self.current_dir -> return
+        assume_path = self.current_pos / self.current_dir[index]
         
         if assume_path.is_dir():
             self.current_pos = assume_path
+            print(f"Entered directory: {assume_path.name}")
         elif assume_path.is_file():
-            self.play_sound(assume_path)
+            print(f"------------------------------------------{self.current_pos}")              # Добавить проверку на активный AudioPlayerController
+            path, playlist = self.create_playlist_from_dir()
+            self.audio_player = AudioPlayerController(path, playlist)
+            # Находим индекс выбранного файла в плейлисте
+            try:
+                start_index = playlist.index(assume_path.name)
+                self.audio_player.current_track_index = start_index
+                self.audio_player.play_current_track()
+            except ValueError:
+                print("File not found in playlist")
 
 
-    def play_sound(self, file_path:Path) -> None:
-        if not file_path.exists():
-            print("File is not exist")
-        
-        mixer.music.load(file_path)
-        mixer.music.play()
-        print(f"playing file - {file_path.name}")
+    def next_song(self) -> None:
+        if self.audio_player:
+            self.audio_player.next_track()
+
+    
+    def prev_song(self) -> None:
+        if self.audio_player:
+            self.audio_player.prev_track()
+
+
+    def update(self):
+        if self.audio_player:
+            self.audio_player.update()
 
 
     def back_previous_dir(self) -> None:
@@ -97,6 +113,22 @@ class FileBrowserModel():
         print(self.config)
         
 
+    def create_playlist_from_dir(self) -> tuple[Path, list[str]]:
+        current_dir = []
+        for file in self.current_pos.iterdir():
+            if file.is_file() and file.suffix.lower() in self.supported_formats:
+                print(file.name)
+                current_dir.append(str(file.name))
+                # current_dir.append(file.name)
+
+        return (self.current_pos, current_dir) 
+    
+
 if __name__ == "__main__":
     f = FileBrowserModel()
-    f.get_dir()
+    print(f.current_dir)
+    f.open_file(2)
+    while True:
+        inp = input("enter q to quit: ")
+        if inp.upper() == 'Q':
+            break

@@ -40,7 +40,7 @@ class MainFluentWindow(FluentWindow):
         # Create Navigation Bar
         self.homeInterface = HomeWindow()
         #---------------------------------------
-        # Add scroll alboms
+        # Add scroll albums
         #---------------------------------------
         self.settings_window = SettinsWindow()
 
@@ -52,7 +52,7 @@ class MainFluentWindow(FluentWindow):
         )
 
         #---------------------------------------
-        # Add alboms with NavigationItemPosition.SCROLL
+        # Add albums with NavigationItemPosition.SCROLL
         #---------------------------------------
 
         self.addSubInterface(

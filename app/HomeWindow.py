@@ -21,18 +21,18 @@ class HomeWindow(QWidget):
         main_vert_layout.setContentsMargins(15, 5, 15, 5)
         main_vert_layout.setAlignment(Qt.AlignCenter)
         
-        albom_page_layout = QVBoxLayout(self)
+        album_page_layout = QVBoxLayout(self)
         label = QLabel("This is Home Page")
         btn = PushButton("Hello")
 
         player_bar = PlayerBar()
 
-        albom_page_layout.addWidget(label)
-        albom_page_layout.addWidget(btn)
-        albom_page_layout.addWidget(label)
+        album_page_layout.addWidget(label)
+        album_page_layout.addWidget(btn)
+        album_page_layout.addWidget(label)
 
         #main_vert_layout.addWidget(label)
         #main_vert_layout.addWidget(btn)
-        main_vert_layout.addLayout(albom_page_layout)
+        main_vert_layout.addLayout(album_page_layout)
         main_vert_layout.addStretch(1)
         main_vert_layout.addWidget(player_bar)

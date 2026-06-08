@@ -51,7 +51,7 @@ class PlayerBar(QWidget):
 
 
     def __create_info_panel(self) -> QHBoxLayout:
-        """ Set parameters for info panel (albom icon, song name, artist name) """
+        """ Set parameters for info panel (album icon, song name, artist name) """
         print("PlayerBar.py: start __create_info_panel")
 
         info_layout = QHBoxLayout()
