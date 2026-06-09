@@ -7,11 +7,12 @@ from FileBrowserModel import FileBrowserModel
 # Import msvcrt only for Windows
 if os.name == 'nt':
     import msvcrt
-else:
-    # For Linux/Mac can use imports tty/termios, 
-    # while project only for win10 return error
-    raise OSError("This test script currently supports Windows only due to msvcrt usage.")
 
+# For Linux/Mac imports tty/termios
+else:
+    import termios
+    import tty
+    import select
 
 def print_dir(current_dir:dict):
     if not current_dir:
@@ -25,15 +26,46 @@ def print_dir(current_dir:dict):
 def get_key_non_blocking():
     """
     Return pressed key without blocking main thread.
-    Return None if no key is pressed
+    Return None if no key is pressed.
+    Works on Windows and Linux.
     """
-    if msvcrt.kbhit():
-        key = msvcrt.getwch()
-        # Ignore special symbols and arrows keybuttons
-        if key in ('\x00', '\xe0'):
-            _ = msvcrt.getwch() 
-            return None 
-        return key.lower()
+    if os.name == 'nt':
+        # Windows: msvcrt
+        if msvcrt.kbhit():
+            key = msvcrt.getwch()
+            # Ignore special prefix bytes for arrow keys etc.
+            if key in ('\x00', '\xe0'):
+                _ = msvcrt.getwch()
+                return None
+            return key.lower()
+    
+    else:
+        # Linux/Unix: termios + select
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setcbreak(fd)  # non-blocking, character-at-a-time mode
+            
+            # Check if input is available (timeout = 0)
+            if select.select([sys.stdin], [], [], 0)[0]:
+                key = sys.stdin.read(1)
+                # Handle escape sequences (arrows, etc.)
+                if key == '\x1b':  # ESC character
+                    # Read next chars to consume the sequence
+                    if select.select([sys.stdin], [], [], 0.01)[0]:
+                        sys.stdin.read(1)  # skip '['
+                    if select.select([sys.stdin], [], [], 0.01)[0]:
+                        sys.stdin.read(1)  # skip arrow code
+                    return None
+                return key.lower()
+        except Exception:
+            # Fallback: restore settings and return None
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+            return None
+        finally:
+            # Always restore terminal settings
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+    
     return None
 
 

@@ -3,6 +3,9 @@ import json
 from pathlib import Path
 from  AudioPlayerController import AudioPlayerController
 
+
+
+
 class FileBrowserModel():
     def __init__(self):
         self.config = self.__load_config()
