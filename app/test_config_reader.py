@@ -14,14 +14,13 @@ else:
     import tty
     import select
 
-def print_dir(current_dir:dict):
+def print_dir(current_dir:dict[int,Path]):
     if not current_dir:
         print("Directory is empty or inaccessible")
         return
     
     for idx, obj in current_dir.items():
-        print(f"{idx}: {obj}")
-
+        print(f"{idx}: {obj.name}")
 
 def get_key_non_blocking():
     """
@@ -67,7 +66,6 @@ def get_key_non_blocking():
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
     
     return None
-
 
 def print_console_ui(file_browser):
     # Clear console

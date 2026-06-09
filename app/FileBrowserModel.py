@@ -1,13 +1,16 @@
 import os
 import json
 from pathlib import Path
-from  AudioPlayerController import AudioPlayerController
+from PyQt5.QtCore import QObject, pyqtSignal
+from AudioPlayerController import AudioPlayerController
 
 
+class FileBrowserModel(QObject):
+    directoryChanged = pyqtSignal()
+    playbackStarted = pyqtSignal(Path)
 
-
-class FileBrowserModel():
-    def __init__(self):
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.config = self.__load_config()
         self.current_pos = self.root_path
         self.audio_player: AudioPlayerController | None = None
@@ -55,19 +58,62 @@ class FileBrowserModel():
 
         for file in self.current_pos.iterdir():
             if self.is_supported(file):
-                current_dir[index] = file.name
+                current_dir[index] = file
                 index += 1
 
         return current_dir
 
 
     def is_supported(self, file:Path) -> bool:
-        if file.is_dir() and file not in self.excluded_folders:
+        if file.is_dir():
+            if file in self.excluded_folders:
+                return False
+            if file.name.startswith("."):
+                return False
             return True
-        elif file.is_file() and file.suffix.lower() in self.supported_formats:
-            return True
-        else:
-            return False
+        elif file.is_file():
+            return file.suffix.lower() in self.supported_formats
+        return False
+
+
+    def handle_item_click(self, filename: str):
+        full_path = self.current_pos / filename
+        
+        if full_path.is_dir():
+            self.open_folder(full_path)
+        elif full_path.is_file():
+            self.play_file(full_path)
+
+
+    def open_folder(self, path:Path):
+        """ Open folder end update directory in ui
+        Args:
+            path (Path): path to folder
+        """
+        self.current_pos = path
+        self.directoryChanged.emit()    # Emit signal for HomeWindow to update ui
+
+    
+    def play_file(self, path:Path):
+        """ Emit play for AudioPlayerController
+        Args:
+            path (Path): path to audio file
+        """
+        playlist = self.create_playlist_from_dir()
+        if not playlist:
+            print("No audio files in directory")
+            return
+        
+        self.audio_player = AudioPlayerController(playlist) # Пересмотреть код, возможно хранить audioPlayer на уровне MainWindow
+
+        # Находим индекс выбранного файла в плейлисте
+        try:
+            start_index = playlist.index(path)
+            self.audio_player.current_track_index = start_index
+            self.audio_player.play_current_track()
+            self.playbackStarted.emit(path) # Emit signal 
+        except ValueError:
+            print("File not found in playlist")
 
 
     def open_file(self, index:int) -> None:
@@ -79,11 +125,11 @@ class FileBrowserModel():
             print(f"Entered directory: {assume_path.name}")
         elif assume_path.is_file():
             print(f"------------------------------------------{self.current_pos}")              # Добавить проверку на активный AudioPlayerController
-            path, playlist = self.create_playlist_from_dir()
-            self.audio_player = AudioPlayerController(path, playlist)
+            playlist = self.create_playlist_from_dir()
+            self.audio_player = AudioPlayerController(playlist)
             # Находим индекс выбранного файла в плейлисте
             try:
-                start_index = playlist.index(assume_path.name)
+                start_index = playlist.index(assume_path)
                 self.audio_player.current_track_index = start_index
                 self.audio_player.play_current_track()
             except ValueError:
@@ -108,6 +154,7 @@ class FileBrowserModel():
     def back_previous_dir(self) -> None:
         if self.current_pos != self.root_path:
             self.current_pos = self.current_pos.parent
+            self.directoryChanged.emit()
         else:
             print("You are in root directory")
 
@@ -116,15 +163,13 @@ class FileBrowserModel():
         print(self.config)
         
 
-    def create_playlist_from_dir(self) -> tuple[Path, list[str]]:
+    def create_playlist_from_dir(self) -> list[Path]:
         current_dir = []
         for file in self.current_pos.iterdir():
             if file.is_file() and file.suffix.lower() in self.supported_formats:
-                print(file.name)
-                current_dir.append(str(file.name))
-                # current_dir.append(file.name)
+                current_dir.append(file)
 
-        return (self.current_pos, current_dir) 
+        return current_dir
     
 
 if __name__ == "__main__":

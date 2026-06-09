@@ -11,7 +11,7 @@ def main(*args,**kwargs):
         font = QFont("Circular", 10)
         app.setFont(font)
 
-        main_app = MainFluentWindow()
+        main_app = MainFluentWindow(self)
         main_app.setStyleSheet("background-color: #000000")
         main_app.setBackgroundColor(QColor("#000000"))
         main_app.show()

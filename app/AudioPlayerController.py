@@ -8,13 +8,14 @@ from pygame import (
     event as pg_event,
     error as pyerror
 )
+from PyQt5.QtCore import QObject, pyqtSignal
 
 # Custom Event for track end (also play/stop)
 TRACK_END_EVENT = USEREVENT + 1
 
-class AudioPlayerController():
-    def __init__(self, current_path:Path, playlist:list[str]) -> None:
-        self.current_path = current_path
+class AudioPlayerController(QObject):
+    def __init__(self, playlist:list[Path], parent=None) -> None:
+        super().__init__(parent)
         self.current_playlist = playlist
         self._current_track_index = 0
         self.is_playing = False
@@ -46,7 +47,7 @@ class AudioPlayerController():
 
     
     def get_song_name(self) -> str:
-        return self.current_playlist[self.current_track_index]
+        return self.current_playlist[self.current_track_index].name
 
 
     def next_track(self):
@@ -84,7 +85,7 @@ class AudioPlayerController():
         if not self.current_playlist:
             return
         
-        file_path = self.current_path / self.current_playlist[self._current_track_index]
+        file_path = self.current_playlist[self._current_track_index]
 
         try:
             mixer.music.load(str(file_path))

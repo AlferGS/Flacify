@@ -17,8 +17,8 @@ from qfluentwidgets import (
 
 # Settings page
 class SettinsWindow(QWidget):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.__init_ui()
 
 

@@ -10,8 +10,8 @@ from app.PlayerBar import PlayerBar
 
 # Home application page
 class HomeWindow(QWidget):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.__init_ui()
 
     def __init_ui(self) -> None:

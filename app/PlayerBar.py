@@ -12,6 +12,7 @@ from qfluentwidgets import (
     TransparentToolButton, 
     FluentIcon as FIF
 )
+from app.AudioPlayerController import AudioPlayerController
 
 class NoHoverFilter(QObject):
     def eventFilter(self, obj, event):
@@ -25,6 +26,8 @@ class NoHoverFilter(QObject):
 class PlayerBar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.audio_player = AudioPlayerController()
+
         self.__init_ui()
 
 
@@ -74,6 +77,10 @@ class PlayerBar(QWidget):
         print("PlayerBar.py: end __create_info_panel")
         return info_layout
     
+
+    def __update_info_panel(self) -> None:
+        pass
+
 
     def __create_control_panel(self) -> QVBoxLayout:
         """ Set parameters for control panel (next/prev song button, play/stop button, song slider) """
