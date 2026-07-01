@@ -3,7 +3,6 @@ os.environ['QFLUENT_WIDGETS_PRO_TIPS'] = '0'
 from qfluentwidgets import (
     FluentWindow, 
     NavigationItemPosition,
-    NavigationInterface,
     setTheme, 
     Theme,
     FluentIcon as FIF
@@ -12,22 +11,25 @@ from PyQt5.QtWidgets import QApplication, QPushButton, QLabel, QWidget, QScrollA
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPalette
 
-from app.HomeWindow import HomeWindow
-from app.SettingsWindow import SettinsWindow
-from app.FileBrowserModel import FileBrowserModel
-from app.AudioPlayerController import AudioPlayerController
+from app.main_window import HomeWindow
+from .settings_window import SettinsWindow
+from app.core import FileBrowserModel
+from app.core import AudioPlayerController
 
-# Main appliction class
+
 class MainFluentWindow(FluentWindow):
     def __init__(self, parent=None):
-        """ Init filebrowser, set min resolution and init ui
+        """ Init file_browser, set min resolution and init ui
         """
         super().__init__(parent)
-        self.file_browser = FileBrowserModel(self)
-
         setTheme(Theme.DARK)
         self.__set_min_resolution()
+
+        self.audio_player = AudioPlayerController([], self)
+        self.file_browser = FileBrowserModel(self.audio_player, self)
+
         self.__init_ui()
+
 
     def __set_min_resolution(self) -> None:
         """ Set min resolution for window
@@ -53,9 +55,13 @@ class MainFluentWindow(FluentWindow):
         it with icons
         """
         # Create Navigation Bar
-        self.homeInterface = HomeWindow(self)
+        self.homeInterface = HomeWindow(
+            self.file_browser, 
+            self.audio_player, 
+            self
+        )
         #---------------------------------------
-        # Add scroll albums
+        # TODO: Add scroll albums
         #---------------------------------------
         self.settings_window = SettinsWindow(self)
 
@@ -67,7 +73,7 @@ class MainFluentWindow(FluentWindow):
         )
 
         #---------------------------------------
-        # Add albums with NavigationItemPosition.SCROLL
+        # TODO: Add albums with NavigationItemPosition.SCROLL
         #---------------------------------------
 
         self.addSubInterface(

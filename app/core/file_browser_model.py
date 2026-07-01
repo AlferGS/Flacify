@@ -2,18 +2,18 @@ import os
 import json
 from pathlib import Path
 from PyQt5.QtCore import QObject, pyqtSignal
-from AudioPlayerController import AudioPlayerController
+from app.core import AudioPlayerController
 
 
 class FileBrowserModel(QObject):
     directoryChanged = pyqtSignal()
     playbackStarted = pyqtSignal(Path)
 
-    def __init__(self, parent=None):
+    def __init__(self, audio_player: AudioPlayerController, parent=None):
         super().__init__(parent)
+        self.audio_player = audio_player
         self.config = self.__load_config()
         self.current_pos = self.root_path
-        self.audio_player: AudioPlayerController | None = None
 
 
     def __load_config(self) -> dict:
@@ -104,13 +104,12 @@ class FileBrowserModel(QObject):
             print("No audio files in directory")
             return
         
-        self.audio_player = AudioPlayerController(playlist) # Пересмотреть код, возможно хранить audioPlayer на уровне MainWindow
+        # self.audio_player = AudioPlayerController(playlist) # Пересмотреть код, возможно хранить audioPlayer на уровне MainWindow
 
         # Находим индекс выбранного файла в плейлисте
         try:
             start_index = playlist.index(path)
-            self.audio_player.current_track_index = start_index
-            self.audio_player.play_current_track()
+            self.audio_player.set_playlist(playlist, start_index)
             self.playbackStarted.emit(path) # Emit signal 
         except ValueError:
             print("File not found in playlist")
@@ -122,16 +121,16 @@ class FileBrowserModel(QObject):
         
         if assume_path.is_dir():
             self.current_pos = assume_path
+            self.directoryChanged.emit()
             print(f"Entered directory: {assume_path.name}")
         elif assume_path.is_file():
             print(f"------------------------------------------{self.current_pos}")              # Добавить проверку на активный AudioPlayerController
             playlist = self.create_playlist_from_dir()
-            self.audio_player = AudioPlayerController(playlist)
+            # self.audio_player = AudioPlayerController(playlist)
             # Находим индекс выбранного файла в плейлисте
             try:
                 start_index = playlist.index(assume_path)
-                self.audio_player.current_track_index = start_index
-                self.audio_player.play_current_track()
+                self.audio_player.set_playlist(playlist, start_index)
             except ValueError:
                 print("File not found in playlist")
 
@@ -144,11 +143,6 @@ class FileBrowserModel(QObject):
     def prev_song(self) -> None:
         if self.audio_player:
             self.audio_player.prev_track()
-
-
-    def update(self):
-        if self.audio_player:
-            self.audio_player.update()
 
 
     def back_previous_dir(self) -> None:
