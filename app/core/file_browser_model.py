@@ -1,8 +1,9 @@
-import os
 import json
 from pathlib import Path
+
 from PyQt5.QtCore import QObject, pyqtSignal
-from app.core import AudioPlayerController
+
+from .audio_player_controller import AudioPlayerController
 
 
 class FileBrowserModel(QObject):

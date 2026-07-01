@@ -1,13 +1,7 @@
-from PyQt5.QtWidgets import (
-    QHBoxLayout,
-)
 from PyQt5.QtCore import Qt, pyqtSignal
-from qfluentwidgets import (
-    CardWidget,
-    IconWidget,
-    BodyLabel,
-    FluentIcon as FIF
-)
+from PyQt5.QtWidgets import QHBoxLayout
+
+from qfluentwidgets import BodyLabel, CardWidget, FluentIcon as FIF, IconWidget
 
 class FileListItem(CardWidget):
     """ Class for elements in view layout

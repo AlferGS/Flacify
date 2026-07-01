@@ -1,22 +1,13 @@
-import os
 import json
-from PyQt5.QtWidgets import (
-    QWidget, 
-    QVBoxLayout, 
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QFileDialog
-)
+import os
+
 from PyQt5.QtCore import Qt
-from qfluentwidgets import (
-    PushButton, 
-    TransparentToolButton,
-    FluentIcon as FIF
-)
+from PyQt5.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QFileDialog, QVBoxLayout, QWidget
+
+from qfluentwidgets import FluentIcon as FIF, TransparentToolButton
 
 # Settings page
-class SettinsWindow(QWidget):
+class SettingsWindow(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.__init_ui()

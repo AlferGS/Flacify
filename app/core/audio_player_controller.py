@@ -1,16 +1,13 @@
 import os
-os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "HIDE"
-from pathlib import Path
 import time
+from pathlib import Path
 from random import shuffle
-from pygame import (
-    display,
-    mixer, 
-    USEREVENT,
-    event as pg_event,
-    error as pyerror
-)
-from PyQt5.QtCore import QObject, pyqtSignal, QTimer
+
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "HIDE"
+
+from pygame import USEREVENT, display, event as pg_event, mixer
+from PyQt5.QtCore import QObject, QTimer, pyqtSignal
+
 from .metadata_reader import MetadataReader
 
 # Custom Event for track end (also play/stop)

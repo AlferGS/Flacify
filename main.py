@@ -1,7 +1,9 @@
 import sys
+
+from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QApplication
+
 from app.main_window import MainFluentWindow
-from PyQt5.QtGui import QFont, QColor
 
 def main(*args,**kwargs):
     print('__main__: start application')

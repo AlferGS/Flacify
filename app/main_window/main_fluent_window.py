@@ -1,20 +1,14 @@
 import os
-os.environ['QFLUENT_WIDGETS_PRO_TIPS'] = '0'
-from qfluentwidgets import (
-    FluentWindow, 
-    NavigationItemPosition,
-    setTheme, 
-    Theme,
-    FluentIcon as FIF
-)
-from PyQt5.QtWidgets import QApplication, QPushButton, QLabel, QWidget, QScrollArea
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor, QPalette
 
-from app.main_window import HomeWindow
-from .settings_window import SettinsWindow
-from app.core import FileBrowserModel
-from app.core import AudioPlayerController
+os.environ['QFLUENT_WIDGETS_PRO_TIPS'] = '0'
+
+from PyQt5.QtWidgets import QApplication
+
+from qfluentwidgets import FluentIcon as FIF, FluentWindow, NavigationItemPosition, Theme, setTheme
+
+from .home_window import HomeWindow
+from .settings_window import SettingsWindow
+from app.core import AudioPlayerController, FileBrowserModel
 
 
 class MainFluentWindow(FluentWindow):
@@ -63,7 +57,7 @@ class MainFluentWindow(FluentWindow):
         #---------------------------------------
         # TODO: Add scroll albums
         #---------------------------------------
-        self.settings_window = SettinsWindow(self)
+        self.settings_window = SettingsWindow(self)
 
         self.addSubInterface(
             self.homeInterface, 
