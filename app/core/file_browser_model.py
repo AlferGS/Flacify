@@ -1,9 +1,11 @@
+#core/file_browser_model.py
 import json
 from pathlib import Path
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from .audio_player_controller import AudioPlayerController
+from .metadata_reader import MetadataReader
 
 
 class FileBrowserModel(QObject):

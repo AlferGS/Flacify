@@ -1,3 +1,4 @@
+#main_window/main_fluent_window.py
 import os
 
 os.environ['QFLUENT_WIDGETS_PRO_TIPS'] = '0'
@@ -18,7 +19,11 @@ class MainFluentWindow(FluentWindow):
         super().__init__(parent)
         setTheme(Theme.DARK)
         self.__set_min_resolution()
-
+        self.setStyleSheet('''
+            border: 0px;
+            border-style: solid;
+            border-color: #A9259A
+        ''')
         self.audio_player = AudioPlayerController([], self)
         self.file_browser = FileBrowserModel(self.audio_player, self)
 

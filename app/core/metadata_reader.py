@@ -1,3 +1,4 @@
+#core/metadata_reader.py
 from pathlib import Path
 
 import mutagen
@@ -16,9 +17,10 @@ class MetadataReader:
             file_path (Path): Path to file
 
         Returns:
-            dict: metadata {"title", "artist", "album", "cover_data"}
+            dict: metadata {"track", "title", "artist", "album", "cover_data"}
         """
         metadata = {
+            "track": 0,
             "title": file_path.stem,
             "artist": "Unknown Artist",
             "album": "Unknown Album",
@@ -26,22 +28,58 @@ class MetadataReader:
         }
 
         try:
-            audio = mutagen.File(file_path, easy=True)
+            audio = mutagen.File(file_path)
             if audio is None:
                 return metadata
             
-            if "title" in audio and audio["title"]:
-                metadata["title"] = str(audio["title"][0])
-            if "artist" in audio and audio["artist"]:
-                metadata["artist"] = str(audio["artist"][0])
-            if "album" in audio and audio["album"]:
-                metadata["album"] = str(audio["album"][0])
-            
-            # Попытка извлечь обложку (зависит от формата)
-            metadata["cover_data"] = MetadataReader._extract_cover(file_path)
+            if isinstance(audio, MP3):
+                # MP3 часто требует EasyID3 или прямого доступа к ID3
+                tags = audio.tags
+                if tags:
+                    metadata['title'] = tags.get('TIT2', [metadata['title']])[0]
+                    metadata['artist'] = tags.get('TPE1', [metadata['artist']])[0]
+                    metadata['album'] = tags.get('TALB', [metadata['album']])[0]
+                    
+                    # Трек номер может быть "1/12" или просто "1"
+                    trck = tags.get('TRCK')
+                    if trck:
+                        metadata['track'] = int(str(trck[0]).split('/')[0])
+                        
+                    # Обложка для MP3 (APIC frame)
+                    for tag in tags.values():
+                        if hasattr(tag, 'FrameID') and tag.FrameID == 'APIC':
+                            metadata['cover_data'] = tag.data
+                            break
+
+            elif isinstance(audio, (FLAC, OggVorbis)):
+                metadata['title'] = audio.get('TITLE', [metadata['title']])[0]
+                metadata['artist'] = audio.get('ARTIST', [metadata['artist']])[0]
+                metadata['album'] = audio.get('ALBUM', [metadata['album']])[0]
+                
+                trck = audio.get('TRACKNUMBER')
+                if trck:
+                    metadata['track'] = int(str(trck[0]).split('/')[0])
+
+                # Обложка для FLAC/Vorbis (обычно в pictures)
+                if hasattr(audio, 'pictures') and audio.pictures:
+                    metadata['cover_data'] = audio.pictures[0].data
+
+            elif isinstance(audio, MP4):
+                metadata['title'] = audio.get('\xa9nam', [metadata['title']])[0]
+                metadata['artist'] = audio.get('\xa9ART', [metadata['artist']])[0]
+                metadata['album'] = audio.get('\xa9alb', [metadata['album']])[0]
+                
+                trck = audio.get('trkn')
+                if trck:
+                    metadata['track'] = trck[0][0] # В MP4 это кортеж (track, total)
+
+                # Обложка для MP4 (covr)
+                cover = audio.get('covr')
+                if cover:
+                    metadata['cover_data'] = cover[0]
 
         except Exception as e:
-            print(f"Error reading metadata for {file_path.name}: {e}")
+            print(f"Error reading metadata for {file_path}: {e}")
 
         return metadata
     

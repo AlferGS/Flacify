@@ -1,13 +1,14 @@
-PlayerBar.py
+player_bar.py
 [ ] 1. shuffle_button - добавить блокировку кнопки в случае если плейлист пуст
 [ ] 2. repeat_button - реализовать функционал кнопки с 3 режимами работы по аналогии с mute_btn
 [ ] 3. Убрать зависимость между UI и бизнес логикой (AudioPlayerController)
+[ ] 4. Изменить QLabel на BodyLabel для поддержки шрифтов qfluentwindow
 
-HomeWindow.py
+file_list_item.py
 [ ] 1. Уменьшить кнопки папок/файлов в интерфейсе
-[ ] 2. Сделать фон папок/файлов прозрачным или в цвет фона
+[x] 2. Сделать фон папок/файлов прозрачным или в цвет фона
 
-AudioPlayerController.py
+audio_player_controller.py
 [ ] 1. Переделать логику работы с плейлистом. Реализовать обратный стек с forwardpop() 
 и избавиться от _current_track_index
 
