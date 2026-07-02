@@ -123,6 +123,8 @@ class PlayerBar(SimpleCardWidget):
 
         self.shuffle_button = TransparentToolButton(FIF.SYNC)
         self.shuffle_button.setFixedSize(30, 30)
+        self.shuffle_button.setEnabled(False)
+
         self.prev_button = TransparentToolButton(FIF.CARE_LEFT_SOLID)
         self.prev_button.setFixedSize(30, 30)
         self.play_button = TransparentToolButton(FIF.PLAY)
@@ -280,6 +282,10 @@ class PlayerBar(SimpleCardWidget):
             self.vol_button.setIcon(FIF.MUTE)
         else:
             self.vol_button.setIcon(FIF.VOLUME)
+
+
+    def _toggle_shuffle_button(self, flag: bool) -> None:
+        self.shuffle_button.setEnabled(flag)
 
 
     def pause_track(self):

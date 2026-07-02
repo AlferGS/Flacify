@@ -16,6 +16,7 @@ TRACK_END_EVENT = USEREVENT + 1
 class AudioPlayerController(QObject):
     trackChanged = pyqtSignal(str, str, str, object)  #title, artist, album, cover_data
     trackSliderChanged = pyqtSignal(int, int) # current_ms, total_ms
+    shuffleButtonEnabled = pyqtSignal(bool) # can shuffle playlist
 
     def __init__(self, playlist:list[Path]=None, parent=None) -> None:
         super().__init__(parent)
@@ -84,7 +85,6 @@ class AudioPlayerController(QObject):
         """ Skip to next track
         Increment index of current_track index to += 1 
         """
-        # print("next_track")
         next_idx = self._current_track_index + 1
 
         if next_idx >= len(self.current_playlist):
@@ -150,6 +150,9 @@ class AudioPlayerController(QObject):
                 meta["album"],
                 meta["cover_data"]
             )
+            # send to shuffle button Disable if not exist current_playlist or last song 
+            self.shuffleButtonEnabled.emit(True if self.current_playlist and self.current_track_index < len(self.current_playlist)-1 else False)
+            
         except Exception as e:
             print(f"Error playing file: {e}")
             self.next_track()

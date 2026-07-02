@@ -2,9 +2,11 @@ from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QFontMetrics, QPainter, QPalette
 from PyQt5.QtWidgets import QLabel, QStyleOption
 
-class MarqueeLabel(QLabel):
+from qfluentwidgets import BodyLabel
+
+class MarqueeLabel(BodyLabel):
     def __init__(self, text="", parent=None):
-        super().__init__(text, parent)
+        super().__init__(text)
         self._offset = 0.0
         self._direction = -1  # -1 = едет влево, 1 = вправо
         self._pause_counter = 0

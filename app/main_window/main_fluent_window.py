@@ -25,7 +25,10 @@ class MainFluentWindow(FluentWindow):
         ''')
         self.audio_player = AudioPlayerController([], self)
         self.file_browser = FileBrowserModel(self.audio_player, self)
+        self.home_window = HomeWindow(self.file_browser, self.audio_player, self)
+        self.settings_window = SettingsWindow(self)
 
+        self.audio_player.shuffleButtonEnabled.connect(self.home_window.player_bar._toggle_shuffle_button)
         self.__init_ui()
 
 
@@ -53,18 +56,13 @@ class MainFluentWindow(FluentWindow):
         it with icons
         """
         # Create Navigation Bar
-        self.homeInterface = HomeWindow(
-            self.file_browser, 
-            self.audio_player, 
-            self
-        )
+
         #---------------------------------------
         # TODO: Add scroll albums
         #---------------------------------------
-        self.settings_window = SettingsWindow(self)
 
         self.addSubInterface(
-            self.homeInterface, 
+            self.home_window, 
             icon=FIF.HOME,
             text="Home", 
             position=NavigationItemPosition.TOP

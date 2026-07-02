@@ -9,8 +9,6 @@ from qfluentwidgets import ScrollArea
 from app.components import FolderListItem, SongListItem, PlayerBar
 from app.core import AudioPlayerController, FileBrowserModel, MetadataReader
 
-
-
 # Home application page
 class HomeWindow(QWidget):
     def __init__(self, file_browser: FileBrowserModel, audio_player: AudioPlayerController, parent=None):

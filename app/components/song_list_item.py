@@ -50,11 +50,11 @@ class SongListItem(CardWidget):
         text_layout = QVBoxLayout()
         text_layout.setSpacing(2)
         
-        self.title_label = QLabel(self.display_name)
+        self.title_label = BodyLabel(self.display_name)
         self.title_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
         self.title_label.setStyleSheet("color: #FFFFFF; font-weight: bold; background: transparent;")
         
-        self.artist_label = QLabel(self.display_artist)
+        self.artist_label = BodyLabel(self.display_artist)
         self.artist_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
         self.artist_label.setStyleSheet("color: #AAAAAA; font-size: 12px; background: transparent;")
         
