@@ -10,6 +10,25 @@ from mutagen.oggvorbis import OggVorbis
 
 class MetadataReader:
     @staticmethod
+    def format_duration(seconds: float) -> str:
+        """
+        Форматирует секунды в строку вида 'MM:SS' или 'H:MM:SS'.
+        Пример: 245.5 -> '04:05'
+        """
+        # >>> ИЗМЕНЕНИЕ: Новый хелпер для форматирования
+        if seconds <= 0:
+            return "00:00"
+        
+        total_seconds = int(seconds)
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        secs = total_seconds % 60
+        
+        if hours > 0:
+            return f"{hours}:{minutes:02d}:{secs:02d}"
+        return f"{minutes:02d}:{secs:02d}"
+
+    @staticmethod
     def get_metadata(file_path: Path) -> dict:
         """ Read metadata from audio file.
         
@@ -24,6 +43,7 @@ class MetadataReader:
             "title": file_path.stem,
             "artist": "Unknown Artist",
             "album": "Unknown Album",
+            "song_dur": "00:00",
             "cover_data": None
         }
 
@@ -32,6 +52,11 @@ class MetadataReader:
             if audio is None:
                 return metadata
             
+            if audio.info and hasattr(audio.info, 'length'):
+                length = audio.info.length
+                metadata['song_dur'] = MetadataReader.format_duration(length)
+            
+
             if isinstance(audio, MP3):
                 # MP3 часто требует EasyID3 или прямого доступа к ID3
                 tags = audio.tags

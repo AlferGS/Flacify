@@ -22,7 +22,6 @@ class MainFluentWindow(FluentWindow):
         self.setStyleSheet('''
             border: 0px;
             border-style: solid;
-            border-color: #A9259A
         ''')
         self.audio_player = AudioPlayerController([], self)
         self.file_browser = FileBrowserModel(self.audio_player, self)
