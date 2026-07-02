@@ -1,9 +1,11 @@
+#core/file_browser_model.py
 import json
 from pathlib import Path
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from .audio_player_controller import AudioPlayerController
+from .metadata_reader import MetadataReader
 
 
 class FileBrowserModel(QObject):
@@ -57,7 +59,29 @@ class FileBrowserModel(QObject):
         current_dir = dict()
         index = 0
 
-        for file in self.current_pos.iterdir():
+        dirs = []
+        files_with_meta = []
+
+        for item in self.current_pos.iterdir():
+            if not self.is_supported(item):
+                continue
+                
+            if item.is_dir():
+                dirs.append(item)
+            elif item.is_file():
+                meta = MetadataReader.get_metadata(item)
+                files_with_meta.append((item, meta.get('track', 0)))
+
+        # Сортируем папки по имени
+        dirs.sort(key=lambda p: p.name.lower())
+        
+        # Сортируем файлы: по номеру трека -> если 0, то по имени
+        files_with_meta.sort(key=lambda x: (x[1] if x[1] > 0 else 9999, x[0].name.lower()))
+        
+        # Объединяем: папки сверху, отсортированные файлы снизу
+        sorted_items = dirs + [f[0] for f in files_with_meta]
+
+        for file in sorted_items:
             if self.is_supported(file):
                 current_dir[index] = file
                 index += 1
@@ -79,7 +103,6 @@ class FileBrowserModel(QObject):
 
     def handle_item_click(self, filename: str):
         full_path = self.current_pos / filename
-        
         if full_path.is_dir():
             self.open_folder(full_path)
         elif full_path.is_file():
