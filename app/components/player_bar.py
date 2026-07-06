@@ -1,4 +1,5 @@
-from PyQt5.QtCore import QEvent, QObject, Qt
+#components/player_bar.py
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QColor, QPainter, QPixmap
 from PyQt5.QtWidgets import QGridLayout, QHBoxLayout, QLabel, QVBoxLayout
 
@@ -8,25 +9,22 @@ from app.core import AudioPlayerController
 from .marquee_label import MarqueeLabel
 from .hover_slider import HoverSlider
 
-class NoHoverFilter(QObject):
-    def eventFilter(self, obj, event):
-        if event.type() in (QEvent.Type.HoverEnter,
-                            QEvent.Type.HoverLeave,
-                            QEvent.Type.Enter,
-                            QEvent.Type.Leave):
-            return True
-        return super().eventFilter(obj, event)
-
 
 class PlayerBar(SimpleCardWidget):
+    togglePlayBtn = pyqtSignal()     # toggle by click play btn
+    toggleMuteBtn = pyqtSignal()     # toggle by click mute btn
+    audioSliderReleased = pyqtSignal(int) # emit audioContr seek
+    volumeSliderChanged = pyqtSignal(float) # emit audioContr seek
+
     def __init__(self, audio_player: AudioPlayerController, parent=None):
         super().__init__(parent)
         self.setObjectName("PlayerBar")
         self.audio_player = audio_player
+        self._is_playing = False
+        self._is_muted = False
         self._is_slider_pressed = False
         self._total_duration_ms = 0
         self.__init_ui()
-        self.__connect_signals()
 
        
     def __init_ui(self) -> None:
@@ -49,16 +47,14 @@ class PlayerBar(SimpleCardWidget):
         self.vol_layout = self.__create_volume_panel()
         
         layout.addLayout(self.info_layout,0,0)
-        # layout.addStretch()
         layout.addLayout(self.control_layout,0,1)
-        # layout.addStretch()
         layout.addLayout(self.vol_layout,0,2)
 
         self.layout = layout
 
 
     @staticmethod
-    def _format_time(ms: int) -> str:
+    def __format_time(ms: int) -> str:
         if ms < 0: ms = 0
         seconds = ms // 1000
         minutes = seconds // 60
@@ -94,7 +90,7 @@ class PlayerBar(SimpleCardWidget):
         return info_layout
     
 
-    def __update_info_panel(self, title:str, artist:str, album: str, cover_data: object) -> None:
+    def _update_info_panel(self, title:str, artist:str, album: str, cover_data: object) -> None:
         self.song_title.setText(title)
         self.artist_label.setText(f"{artist}")
         self.play_button.setIcon(FIF.PAUSE)
@@ -141,6 +137,7 @@ class PlayerBar(SimpleCardWidget):
                 background-color: #169c46;
             }
         """)
+        self.play_button.clicked.connect(self._on_play_clicked)
         self.next_button = TransparentToolButton(FIF.CARE_RIGHT_SOLID)
         self.next_button.setFixedSize(30, 30)
         self.repeat_button = TransparentToolButton(FIF.ROTATE)
@@ -165,9 +162,9 @@ class PlayerBar(SimpleCardWidget):
         self.player_slider.setValue(0)
         self.player_slider.setMinimumWidth(350)
         self.player_slider.setMaximumWidth(500)
-        self.player_slider.sliderPressed.connect(self._on_slider_pressed)
-        self.player_slider.sliderReleased.connect(self._on_slider_released)
-        self.player_slider.valueChanged.connect(self._on_slider_value_changed)
+        self.player_slider.sliderPressed.connect(self.__on_slider_pressed)
+        self.player_slider.sliderReleased.connect(self.__on_slider_released)
+        self.player_slider.valueChanged.connect(self.__on_slider_value_changed)
 
         self.song_duration = QLabel("00:00")
         self.song_duration.setStyleSheet("color: #b3b3b3; font-size: 11px; min-width: 40px;")
@@ -185,25 +182,25 @@ class PlayerBar(SimpleCardWidget):
         return control_layout
 
 
-    def _on_slider_value_changed(self, value: int):
+    def __on_slider_value_changed(self, value: int):
         """
         Update value for self.current_track_time
         """
-        time_str = self._format_time(value)
+        time_str = self.__format_time(value)
         self.current_track_time.setText(time_str)
 
 
-    def _on_slider_pressed(self):
+    def __on_slider_pressed(self):
         self._is_slider_pressed = True
 
 
-    def _on_slider_released(self):
+    def __on_slider_released(self):
         self._is_slider_pressed = False
 
         if self._total_duration_ms > 0:
             position_ms = self.player_slider.value()
-            self.audio_player.seek(position_ms)
-            self.current_track_time.setText(self._format_time(position_ms))
+            self.current_track_time.setText(self.__format_time(position_ms))
+            self.audioSliderReleased.emit(position_ms)
 
 
     def __create_volume_panel(self) -> QHBoxLayout:
@@ -218,6 +215,7 @@ class PlayerBar(SimpleCardWidget):
         self.vol_slider = HoverSlider(Qt.Horizontal)
         self.vol_slider.setMinimumWidth(65)
         self.vol_slider.setMaximumWidth(85)
+        # TODO: придумать как решить проблему передачи текущей громкости. Вынести в DataClass с сохранением в физический файл?
         self.vol_slider.setValue(int(self.audio_player._current_volume*100))        # make get from data class
         self.vol_slider.valueChanged.connect(self.__on_volume_changed)
         
@@ -228,8 +226,9 @@ class PlayerBar(SimpleCardWidget):
 
 
     def __vol_button_clicked(self):
-        is_now_muted = self.audio_player.toggle_mute()
-        self.__sync_volume_ui(is_now_muted)
+        self._is_muted = not self._is_muted
+        self.__sync_volume_ui(self._is_muted)
+        self.toggleMuteBtn.emit()
 
 
     def __sync_volume_ui(self, is_muted: bool):
@@ -248,12 +247,12 @@ class PlayerBar(SimpleCardWidget):
 
     def _update_progress_slider(self, current_ms: int, total_ms: int):
         self._total_duration_ms = total_ms
-        self.song_duration.setText(self._format_time(total_ms))
+        self.song_duration.setText(self.__format_time(total_ms))
         
         if self._is_slider_pressed:
             return
         
-        self.current_track_time.setText(self._format_time(current_ms))
+        self.current_track_time.setText(self.__format_time(current_ms))
         
         self.player_slider.blockSignals(True)
         try:
@@ -264,19 +263,10 @@ class PlayerBar(SimpleCardWidget):
             self.player_slider.blockSignals(False)
 
 
-    def __connect_signals(self):
-        self.shuffle_button.clicked.connect(self.audio_player.shuffle_playlist)
-        self.prev_button.clicked.connect(self.audio_player.prev_track)
-        self.next_button.clicked.connect(self.audio_player.next_track)
-        self.play_button.clicked.connect(self.pause_track)
-        self.audio_player.trackChanged.connect(self.__update_info_panel)
-        self.audio_player.trackSliderChanged.connect(self._update_progress_slider)
-
-
     def __on_volume_changed(self, volume: int):
         """Called when vol_slider moved."""
         vol_float = float(volume / 100.0)
-        self.audio_player.set_volume(vol_float)
+        self.volumeSliderChanged.emit(vol_float)
         
         if volume == 0:
             self.vol_button.setIcon(FIF.MUTE)
@@ -288,15 +278,22 @@ class PlayerBar(SimpleCardWidget):
         self.shuffle_button.setEnabled(flag)
 
 
-    def pause_track(self):
-        self.audio_player.pause_track()
-        icon = FIF.PLAY if self.audio_player.is_paused else FIF.PAUSE
-        self.play_button.setIcon(icon)
+    def _on_play_clicked(self):
+        self._is_playing = not self._is_playing
+        self.__change_play_btn_state()
+        self.togglePlayBtn.emit()
+
+
+    def __change_play_btn_state(self):
+        if self._is_playing:
+            self.play_button.setIcon(FIF.PLAY)
+        else:
+            self.play_button.setIcon(FIF.PAUSE)
 
 
     def paintEvent(self, event):
         """ Override paintEvent to forced painting black background """
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing) # Сглаживание
+        painter.setRenderHint(QPainter.Antialiasing)
         painter.fillRect(self.rect(), QColor("#000000"))
         painter.end()

@@ -14,7 +14,6 @@ def main(*args,**kwargs):
 
         main_app = MainFluentWindow()
         main_app.setStyleSheet("background-color: #000000")
-        # main_app.setBackgroundColor(QColor("#000000"))
         main_app.show()
 
 

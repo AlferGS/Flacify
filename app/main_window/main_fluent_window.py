@@ -14,7 +14,7 @@ from app.core import AudioPlayerController, FileBrowserModel
 
 class MainFluentWindow(FluentWindow):
     def __init__(self, parent=None):
-        """ Init file_browser, set min resolution and init ui
+        """ Init file_browser, set min resolution and init UI
         """
         super().__init__(parent)
         setTheme(Theme.DARK)
@@ -23,13 +23,39 @@ class MainFluentWindow(FluentWindow):
             border: 0px;
             border-style: solid;
         ''')
+        self.__create_core_objects()
+        self.__create_windows()
+        self.__connect_signals()
+
+        self.__init_ui()
+
+
+    def __create_core_objects(self):
         self.audio_player = AudioPlayerController([], self)
         self.file_browser = FileBrowserModel(self.audio_player, self)
+
+
+    def __create_windows(self):
         self.home_window = HomeWindow(self.file_browser, self.audio_player, self)
         self.settings_window = SettingsWindow(self)
 
+
+    def __connect_signals(self):
+        ''' Connect core logic with UI '''
         self.audio_player.shuffleButtonEnabled.connect(self.home_window.player_bar._toggle_shuffle_button)
-        self.__init_ui()
+        self.audio_player.trackChanged.connect(self.home_window.player_bar._update_info_panel)
+        self.audio_player.trackSliderChanged.connect(self.home_window.player_bar._update_progress_slider)
+
+        self.home_window.player_bar.shuffle_button.clicked.connect(self.audio_player.shuffle_playlist)
+        self.home_window.player_bar.prev_button.clicked.connect(self.audio_player.prev_track)
+        self.home_window.player_bar.togglePlayBtn.connect(self.audio_player.pause_track)
+        # self.home_window.player_bar.play_button.clicked.connect(self.home_window.player_bar.pause_track)
+        self.home_window.player_bar.next_button.clicked.connect(self.audio_player.next_track)
+        self.home_window.player_bar.audioSliderReleased.connect(self.audio_player.seek)
+        # TODO: ADD Repeat button connect
+
+        self.home_window.player_bar.toggleMuteBtn.connect(self.audio_player.toggle_mute)
+        self.home_window.player_bar.volumeSliderChanged.connect(self.audio_player.set_volume)
 
 
     def __set_min_resolution(self) -> None:
@@ -47,7 +73,7 @@ class MainFluentWindow(FluentWindow):
         Create navigation field
         """
         self.setWindowTitle("Spotify Style")
-        self.__center(200,200)
+        self.__resize_to_center(200,200)
         self.__create_nav_field()
         
 
@@ -80,7 +106,7 @@ class MainFluentWindow(FluentWindow):
         )
 
 
-    def __center(self, width: int = None, height: int = None) -> None:
+    def __resize_to_center(self, width: int = None, height: int = None) -> None:
         """ Make resize to center of screen
         Args:
             width (int, optional): _description_. Defaults to None.
