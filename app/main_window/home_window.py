@@ -6,19 +6,22 @@ from PyQt5.QtWidgets import QVBoxLayout, QWidget
 
 from qfluentwidgets import ScrollArea
 
+import app
 from app.components import FolderListItem, SongListItem, PlayerBar
 from app.core import AudioPlayerController, FileBrowserModel, MetadataReader
+from app.core.app_state import AppState
 
 # Home application page
 class HomeWindow(QWidget):
-    def __init__(self, file_browser: FileBrowserModel, audio_player: AudioPlayerController, parent=None):
+    def __init__(self, file_browser: FileBrowserModel, app_state: AppState, parent=None):
         super().__init__(parent)
         self.setObjectName("HomeWindow") 
         self.setAutoFillBackground(True)
         self.file_browser = file_browser
-        self.__init_ui(audio_player)
+        self.app_state = app_state
+        self.__init_ui(app_state)
 
-    def __init_ui(self, audio_player:AudioPlayerController) -> None:
+    def __init_ui(self, app_state:AppState) -> None:
         # Main vertical box for ScrollArea and playerBar
         self.main_vert_layout = QVBoxLayout(self)
         self.main_vert_layout.setContentsMargins(0, 0, 0, 0)
@@ -42,11 +45,9 @@ class HomeWindow(QWidget):
         self.scroll_area.setWidget(self.view_container)
         self.main_vert_layout.addWidget(self.scroll_area)
 
-        # Подключаем сигнал изменения директории к перерисовке
-        self.file_browser.directoryChanged.connect(self._load_dir)
         self._load_dir() # Первичная загрузка
 
-        self.player_bar = PlayerBar(audio_player)
+        self.player_bar = PlayerBar(app_state)
         self.main_vert_layout.addWidget(self.player_bar)
 
 

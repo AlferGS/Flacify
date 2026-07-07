@@ -4,54 +4,44 @@ from pathlib import Path
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
+import app
+
 from .audio_player_controller import AudioPlayerController
 from .metadata_reader import MetadataReader
+from .app_state import AppState
 
 
 class FileBrowserModel(QObject):
     directoryChanged = pyqtSignal()
     playbackStarted = pyqtSignal(Path)
 
-    def __init__(self, audio_player: AudioPlayerController, parent=None):
+    def __init__(self, audio_player: AudioPlayerController, app_state: AppState, parent=None):
         super().__init__(parent)
         self.audio_player = audio_player
-        self.config = self.__load_config()
-        self.current_pos = self.root_path
+        self.app_state = app_state
 
-
-    def __load_config(self) -> dict:
-        config_path = Path("config.json")
-        if not config_path.exists():
-            print("Config file not exist")
-            raise FileNotFoundError("Config file not exist")
+        saved_path = self.app_state.current_library_path
+        root = self.root_path
         
-        try:
-            with open(config_path, 'r', encoding='utf-8') as f:
-                config = json.load(f)
-
-        except Exception as e:
-            print(f"Can't open config file {e}")
-            raise Exception(e)            
-
-        return config
+        if saved_path and Path(saved_path).exists() and Path(saved_path).is_relative_to(root):
+            self.current_pos = Path(saved_path)
+        else:
+            self.current_pos = root
     
 
     @property
     def root_path(self) -> Path:
-        return Path(self.config.get("library", "").get("root_path", ""))
+        return Path(self.app_state.root_path) if self.app_state.root_path else Path(".")
 
 
     @property
     def excluded_folders(self) -> list[Path]:
-        if self.config:
-            return list(map(lambda path: Path(path), self.config.get("library", "").get("excluded_folders", [])))
-        else:
-            return []
+        return [Path(p) for p in self.app_state.excluded_folders]
 
 
     @property
     def supported_formats(self) -> list[str]:
-        return self.config.get("library", "").get("supported_formats", [])
+        return self.app_state.supported_formats
 
 
     @property
@@ -72,13 +62,13 @@ class FileBrowserModel(QObject):
                 meta = MetadataReader.get_metadata(item)
                 files_with_meta.append((item, meta.get('track', 0)))
 
-        # Сортируем папки по имени
+        # Sorting folders by name
         dirs.sort(key=lambda p: p.name.lower())
         
-        # Сортируем файлы: по номеру трека -> если 0, то по имени
+        # Sorting files: by track number -> if 0, sort by name
         files_with_meta.sort(key=lambda x: (x[1] if x[1] > 0 else 9999, x[0].name.lower()))
         
-        # Объединяем: папки сверху, отсортированные файлы снизу
+        # Merge: folders upper, sorted files bottom
         sorted_items = dirs + [f[0] for f in files_with_meta]
 
         for file in sorted_items:
@@ -109,13 +99,11 @@ class FileBrowserModel(QObject):
             self.play_file(full_path)
 
 
-    def open_folder(self, path:Path):
-        """ Open folder end update directory in ui
-        Args:
-            path (Path): path to folder
-        """
+    def open_folder(self, path: Path):
         self.current_pos = path
-        self.directoryChanged.emit()    # Emit signal for HomeWindow to update ui
+        if self.app_state:
+            self.app_state.current_library_path = str(path)
+        self.directoryChanged.emit()
 
     
     def play_file(self, path:Path):
@@ -134,7 +122,7 @@ class FileBrowserModel(QObject):
         try:
             start_index = playlist.index(path)
             self.audio_player.set_playlist(playlist, start_index)
-            self.playbackStarted.emit(path) # Emit signal 
+            self.playbackStarted.emit(path) 
         except ValueError:
             print("File not found in playlist")
 
@@ -146,11 +134,8 @@ class FileBrowserModel(QObject):
         if assume_path.is_dir():
             self.current_pos = assume_path
             self.directoryChanged.emit()
-            print(f"Entered directory: {assume_path.name}")
         elif assume_path.is_file():
-            print(f"------------------------------------------{self.current_pos}")              # Добавить проверку на активный AudioPlayerController
             playlist = self.create_playlist_from_dir()
-            # self.audio_player = AudioPlayerController(playlist)
             # Находим индекс выбранного файла в плейлисте
             try:
                 start_index = playlist.index(assume_path)
@@ -172,6 +157,7 @@ class FileBrowserModel(QObject):
     def back_previous_dir(self) -> None:
         if self.current_pos != self.root_path:
             self.current_pos = self.current_pos.parent
+            self.app_state.current_library_path = self.current_pos
             self.directoryChanged.emit()
         else:
             print("You are in root directory")
@@ -192,7 +178,6 @@ class FileBrowserModel(QObject):
 
 if __name__ == "__main__":
     f = FileBrowserModel()
-    print(f.current_dir)
     f.open_file(2)
     while True:
         inp = input("enter q to quit: ")

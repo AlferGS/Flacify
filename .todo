@@ -25,3 +25,39 @@ audio_player_controller.py
 [x] 2. Вынести доп классы из PlayerBar и HomeWindow в другие файлы.
 [ ] 3. Универсализировать работу с плейлистами из проводника и будущими плейлистами из файлов
 [x] 4. Реструктуризация проекта
+
+
+пример обновленного config.json файла
+{
+    "settings": {
+        "root_path": "D:/Audio",
+        "supported_formats": [
+          ".mp3",
+          ".ogg",
+          ".wav",
+          ".flac"
+        ],
+        "excluded_folders": [
+          "D:/Music/Audio/Подкасты",
+          "D:/Music/Audio/Звуки_системы",
+          "D:/Programs/Projects/Projects Python/Flacify/music/secret",
+          ".trash"
+        ],
+        "playlists_dir": "./playlists",
+        "ui": {
+            "theme": "dark",
+            "accent_color": "#000000",
+            "button_color": "#010101",
+            "active_color": "#1DB954"  #примеры цветов, а не настоящие
+        }
+    },
+    "state": {
+        "volume": 0.25,
+        "current_library_path": "D:/Audio/Iron Maiden/2006",
+        "current_track_path": "D:/Audio/Iron Maiden/2006/01.mp3",
+        "current_track_index": 0
+    },
+    "library": { 
+        # Здесь в будущем я хотел бы описать список плейлистов которые созданы пользователем и хранятся в ./playlists
+    },
+}

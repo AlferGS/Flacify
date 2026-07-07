@@ -1,15 +1,14 @@
 #main_window/main_fluent_window.py
 import os
-
 os.environ['QFLUENT_WIDGETS_PRO_TIPS'] = '0'
 
 from PyQt5.QtWidgets import QApplication
-
+from PyQt5.QtGui import QCloseEvent
 from qfluentwidgets import FluentIcon as FIF, FluentWindow, NavigationItemPosition, Theme, setTheme
 
 from .home_window import HomeWindow
 from .settings_window import SettingsWindow
-from app.core import AudioPlayerController, FileBrowserModel
+from app.core import AudioPlayerController, FileBrowserModel, AppState
 
 
 class MainFluentWindow(FluentWindow):
@@ -29,33 +28,75 @@ class MainFluentWindow(FluentWindow):
 
         self.__init_ui()
 
+        self._restore_session()
+
 
     def __create_core_objects(self):
-        self.audio_player = AudioPlayerController([], self)
-        self.file_browser = FileBrowserModel(self.audio_player, self)
+        self.app_state = AppState()
+        self.audio_player = AudioPlayerController([], self.app_state, self)     # TODO: избавться от передачи плейлиста на этом уровне
+        self.file_browser = FileBrowserModel(self.audio_player, self.app_state, self)
 
 
     def __create_windows(self):
-        self.home_window = HomeWindow(self.file_browser, self.audio_player, self)
-        self.settings_window = SettingsWindow(self)
+        self.home_window = HomeWindow(self.file_browser, self.app_state, self)
+        self.settings_window = SettingsWindow(self.app_state, self)
 
 
     def __connect_signals(self):
         ''' Connect core logic with UI '''
+        self.audio_player.sessionRestored.connect(self.home_window.player_bar._update_info_panel)
+        self.audio_player.playbackStateChanged.connect(self.home_window.player_bar._on_playback_state_changed)
+        # Signals AudioPlayerController -> PlayerBar
         self.audio_player.shuffleButtonEnabled.connect(self.home_window.player_bar._toggle_shuffle_button)
         self.audio_player.trackChanged.connect(self.home_window.player_bar._update_info_panel)
         self.audio_player.trackSliderChanged.connect(self.home_window.player_bar._update_progress_slider)
-
+        # Signals PlayerBar -> AudioPlayerController
         self.home_window.player_bar.shuffle_button.clicked.connect(self.audio_player.shuffle_playlist)
         self.home_window.player_bar.prev_button.clicked.connect(self.audio_player.prev_track)
         self.home_window.player_bar.togglePlayBtn.connect(self.audio_player.pause_track)
-        # self.home_window.player_bar.play_button.clicked.connect(self.home_window.player_bar.pause_track)
         self.home_window.player_bar.next_button.clicked.connect(self.audio_player.next_track)
         self.home_window.player_bar.audioSliderReleased.connect(self.audio_player.seek)
-        # TODO: ADD Repeat button connect
-
         self.home_window.player_bar.toggleMuteBtn.connect(self.audio_player.toggle_mute)
         self.home_window.player_bar.volumeSliderChanged.connect(self.audio_player.set_volume)
+        # TODO: ADD Repeat button connect
+
+        # Сохранение состояния при смене трека (в память, не в файл!)
+        self.audio_player.trackChanged.connect(self._on_track_changed)  # TODO: переделать впервую очередь. вынести из класса
+
+        self.file_browser.directoryChanged.connect(self.home_window._load_dir)
+
+
+    def _restore_session(self):
+        """
+        Invoke restoring last track.
+        If file exist, load it in player and update UI on start of track.
+        """
+        success = self.audio_player.restore_last_session()
+
+
+    def _on_track_changed(self, title: str, artist: str, album: str, cover: object):
+        """Update state in appstate class when track changed.
+        Move this code from mainfluentwindow to appstate
+        """
+        if self.audio_player.current_playlist:
+            current_path = self.audio_player.current_playlist[self.audio_player.current_track_index]
+            self.app_state.save_playlist_state(
+                self.audio_player.current_playlist,
+                self.audio_player.current_track_index,
+                current_path
+            )
+
+
+    def closeEvent(self, event: QCloseEvent):
+        """
+        Override closing window event.
+        Save state in file.
+        """
+        if self.file_browser:
+            self.app_state.current_library_path = str(self.file_browser.current_pos)
+        
+        self.app_state.save()
+        super().closeEvent(event)
 
 
     def __set_min_resolution(self) -> None:

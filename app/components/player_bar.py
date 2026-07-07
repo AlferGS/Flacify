@@ -5,27 +5,27 @@ from PyQt5.QtWidgets import QGridLayout, QHBoxLayout, QLabel, QVBoxLayout
 
 from qfluentwidgets import FluentIcon as FIF, SimpleCardWidget, TransparentToolButton
 
-from app.core import AudioPlayerController
+from app.core import AppState
 from .marquee_label import MarqueeLabel
 from .hover_slider import HoverSlider
 
 
 class PlayerBar(SimpleCardWidget):
-    togglePlayBtn = pyqtSignal()     # toggle by click play btn
-    toggleMuteBtn = pyqtSignal()     # toggle by click mute btn
-    audioSliderReleased = pyqtSignal(int) # emit audioContr seek
+    togglePlayBtn = pyqtSignal()            # toggle by click play btn
+    toggleMuteBtn = pyqtSignal()            # toggle by click mute btn
+    audioSliderReleased = pyqtSignal(int)   # emit audioContr seek
     volumeSliderChanged = pyqtSignal(float) # emit audioContr seek
 
-    def __init__(self, audio_player: AudioPlayerController, parent=None):
+    def __init__(self, app_state: AppState, parent=None):
         super().__init__(parent)
         self.setObjectName("PlayerBar")
-        self.audio_player = audio_player
-        self._is_playing = False
+        self.app_state = app_state
         self._is_muted = False
         self._is_slider_pressed = False
         self._total_duration_ms = 0
+        
         self.__init_ui()
-
+        
        
     def __init_ui(self) -> None:
         print("PlayerBar.py: start __init_ui")
@@ -93,23 +93,27 @@ class PlayerBar(SimpleCardWidget):
     def _update_info_panel(self, title:str, artist:str, album: str, cover_data: object) -> None:
         self.song_title.setText(title)
         self.artist_label.setText(f"{artist}")
-        self.play_button.setIcon(FIF.PAUSE)
 
         if cover_data:
             pixelmap = QPixmap()
-            pixelmap.loadFromData(cover_data)
-            # Масштабируем обложку под размер label, сохраняя пропорции
-            scaled_pixmap = pixelmap.scaled(
-                self.cover.size(), 
-                Qt.KeepAspectRatioByExpanding, 
-                Qt.SmoothTransformation
-            )
-            self.cover.setPixmap(scaled_pixmap)
-            self.cover.setText("") # Убираем текст-заглушку
+            if pixelmap.loadFromData(cover_data) and not pixelmap.isNull():
+                scaled_pixmap = pixelmap.scaled(
+                    self.cover.size(), 
+                    Qt.KeepAspectRatioByExpanding, 
+                    Qt.SmoothTransformation
+                )
+                self.cover.setPixmap(scaled_pixmap)
+                self.cover.setText("")
+            else:
+                self._set_default_cover()
         else:
-            self.cover.clear()
-            self.cover.setText("No Cover")
-            self.cover.setStyleSheet("color: #555; background: #111; border-radius: 4px;")
+            self._set_default_cover()
+
+
+    def _set_default_cover(self):
+        self.cover.clear()
+        self.cover.setText("No Cover")
+        self.cover.setStyleSheet("color: #555; background: #111; border-radius: 4px;")
 
 
     def __create_control_panel(self) -> QVBoxLayout:
@@ -119,7 +123,7 @@ class PlayerBar(SimpleCardWidget):
 
         self.shuffle_button = TransparentToolButton(FIF.SYNC)
         self.shuffle_button.setFixedSize(30, 30)
-        self.shuffle_button.setEnabled(False)
+        # self.shuffle_button.setEnabled(False)
 
         self.prev_button = TransparentToolButton(FIF.CARE_LEFT_SOLID)
         self.prev_button.setFixedSize(30, 30)
@@ -210,13 +214,12 @@ class PlayerBar(SimpleCardWidget):
         self.vol_button = TransparentToolButton(FIF.VOLUME)
         self.vol_button.clicked.connect(self.__vol_button_clicked)
         
-        # Add min size for slider. 
-        # Add change style on hover
+        # TODO: Add min size for slider. 
+        # TODO: Add change style on hover
         self.vol_slider = HoverSlider(Qt.Horizontal)
         self.vol_slider.setMinimumWidth(65)
         self.vol_slider.setMaximumWidth(85)
-        # TODO: придумать как решить проблему передачи текущей громкости. Вынести в DataClass с сохранением в физический файл?
-        self.vol_slider.setValue(int(self.audio_player._current_volume*100))        # make get from data class
+        self.vol_slider.setValue(int(self.app_state.volume*100))
         self.vol_slider.valueChanged.connect(self.__on_volume_changed)
         
         vol_layout.addWidget(self.vol_button)
@@ -240,7 +243,7 @@ class PlayerBar(SimpleCardWidget):
                 self.vol_slider.setValue(0)
             else:
                 self.vol_button.setIcon(FIF.VOLUME)
-                self.vol_slider.setValue(int(self.audio_player._current_volume * 100))
+                self.vol_slider.setValue(int(self.app_state.volume * 100))
         finally:
             self.vol_slider.blockSignals(False)
 
@@ -278,17 +281,19 @@ class PlayerBar(SimpleCardWidget):
         self.shuffle_button.setEnabled(flag)
 
 
-    def _on_play_clicked(self):
-        self._is_playing = not self._is_playing
-        self.__change_play_btn_state()
-        self.togglePlayBtn.emit()
-
-
-    def __change_play_btn_state(self):
-        if self._is_playing:
-            self.play_button.setIcon(FIF.PLAY)
-        else:
+    def _on_playback_state_changed(self, is_playing: bool):
+        """
+        Слот, вызываемый контроллером при изменении состояния Play/Pause.
+        Обновляет иконку кнопки.
+        """
+        if is_playing:
             self.play_button.setIcon(FIF.PAUSE)
+        else:
+            self.play_button.setIcon(FIF.PLAY)
+
+
+    def _on_play_clicked(self):
+        self.togglePlayBtn.emit()
 
 
     def paintEvent(self, event):

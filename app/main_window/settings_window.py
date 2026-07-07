@@ -1,15 +1,18 @@
-import json
+#main_window/settings_window.py
 import os
-
+from pathlib import Path
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QFileDialog, QVBoxLayout, QWidget
 
 from qfluentwidgets import FluentIcon as FIF, TransparentToolButton
 
+from app.core.app_state import AppState
+
 # Settings page
 class SettingsWindow(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, app_state: AppState, parent=None):
         super().__init__(parent)
+        self.app_state = app_state
         self.__init_ui()
 
 
@@ -33,14 +36,6 @@ class SettingsWindow(QWidget):
         self.vbox.addLayout(save_config_layout)
 
 
-    def __create_default_config(self) -> dict:
-        config_data = dict()
-        config_data["library"] = {}
-        config_data["library"]["root_path"] = "/home/alfer/Документы/Projects Python/Flacify/music"
-        print(config_data)
-        return config_data
-
-
     def __create_path_layout(self) -> QHBoxLayout:
         path_layout = QHBoxLayout()
         path_layout.setAlignment(Qt.AlignLeft)
@@ -49,7 +44,9 @@ class SettingsWindow(QWidget):
         self.path_label = QLabel("Path to audio folder:")
         self.path_label.setStyleSheet("color: #FFFFFF; font-size: 12px;")
         # LineEdit
-        self.path_lineedit = QLineEdit(" {default_path}") # add default path from config.json
+        current_path = self.app_state.root_path
+        self.path_lineedit = QLineEdit(current_path if current_path else "")
+        self.path_lineedit.setPlaceholderText("Select audio library folder...")
         self.path_lineedit.setStyleSheet("""
             QLineEdit {
                 background-color: #131313; 
@@ -76,13 +73,6 @@ class SettingsWindow(QWidget):
         return path_layout
 
 
-    def __get_root_path(self) -> str:
-        config_file = "config.json"
-
-        
-        return ""
-
-
     def __create_save_config_layout(self) -> QHBoxLayout:
         save_config_layout = QHBoxLayout()
         # Save btn
@@ -97,60 +87,20 @@ class SettingsWindow(QWidget):
 
 
     def __on_path_btn_clicked(self):
-        self.show_dialog()
-
-
-    def show_dialog(self):
-        # Open file dialog
-        file_path = QFileDialog.getExistingDirectory(self, 'Open File', '')
-        # file_path, _ = QFileDialog.getOpenFileName(self, 'Open File', '', 'All Files (*)')
-        if file_path: self.path_lineedit.setText(f'{file_path}')
+        start_dir = self.app_state.root_path or ""
+        file_path = QFileDialog.getExistingDirectory(self, 'Select Audio Library', start_dir)
+        if file_path:
+            self.path_lineedit.setText(file_path)
 
 
     def __on_save_btn_clicked(self):
-        path_ = self.path_lineedit.text()
-        config_file = "config.json"
+        path_ = Path(self.path_lineedit.text().strip())
 
-        if not os.path.exists(path_):
-            print("Ошибка: Папка не существует")
+        if not path_ or not os.path.isdir(path_):
+            print("[SettingsWindow] Error: Folder isn't exist")
             return
+
+        self.app_state.root_path = str(path_)
+        self.app_state.save()
         
-        config_data = None
-
-        if os.path.exists(config_file):
-            try:
-                with open(config_file, 'r', encoding='utf-8') as f:
-                    config_data = json.load(f)
-                
-                with open(config_file, 'w', encoding='utf-8') as f:
-                    json.dump(config_data, f, indent=2, ensure_ascii=False)
-            
-            except FileNotFoundError as e:
-                with open(config_file, 'w', encoding='utf-8') as f:
-                    config_data = self.__create_default_config()
-                    json.dump(config_data, f, indent=2, ensure_ascii=False)
-                print(f"Config file not found: {e}")
-            
-            except json.JSONDecodeError as e:
-                print(f"Error to read JSON. File are damaged. {e}")
-
-            except Exception as e:
-                print(f"Unknown error - {e}")
-        
-        if config_data is None:
-            config_data = self.__create_default_config() 
-
-        config_data.setdefault("library", {})["root_path"] = path_
-
-        try:
-            with open(config_file, 'w', encoding='utf-8') as f:
-                json.dump(config_data, f, indent=2, ensure_ascii=False)
-            print("Config was saved!")
-        except Exception as e:
-            print(f"Unknown error - {e}")
-
-        
-
-
-
-
+        print(f"[SettingsWindow] Config saved! root_path = {path_}")
