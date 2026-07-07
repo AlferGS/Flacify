@@ -1,7 +1,6 @@
 #core/app_state.py
 import json
 from pathlib import Path
-from typing import Any
 
 DEFAULT_CONFIG = {
     "settings": {
@@ -87,8 +86,6 @@ class AppState:
         self._data["state"]["playlist_paths"] = [str(p) for p in playlist]
         self._data["state"]["current_track_index"] = index
         self._data["state"]["current_track_path"] = str(track_path)
-        # Здесь мы НЕ вызываем self.save(), чтобы не писать в файл постоянно.
-        # Запись произойдет при закрытии приложения или нажатии Save в настройках.
 
     @staticmethod
     def _merge_defaults(target: dict, defaults: dict) -> None:
@@ -100,27 +97,27 @@ class AppState:
                 AppState._merge_defaults(target[key], value)
 
     # ==================== settings ====================
-
+    
     @property
-    def root_path(self) -> str:
-        return self._data["settings"]["root_path"]
+    def root_path(self) -> Path:
+        val = self._data["settings"].get("root_path", ".")
+        return Path(val) if val else Path(".")
 
     @root_path.setter
-    def root_path(self, value: str) -> None:
-        self._data["settings"]["root_path"] = value
-        # НЕ сохраняем автоматически!
+    def root_path(self, value: Path | str) -> None:
+        self._data["settings"]["root_path"] = str(value)
 
     @property
     def supported_formats(self) -> list[str]:
         return self._data["settings"]["supported_formats"]
 
     @property
-    def excluded_folders(self) -> list[str]:
-        return self._data["settings"]["excluded_folders"]
+    def excluded_folders(self) -> list[Path]:
+        return [Path(p) for p in self._data["settings"].get("excluded_folders", [])]
 
     @property
-    def playlists_dir(self) -> str:
-        return self._data["settings"]["playlists_dir"]
+    def playlists_dir(self) -> Path:
+        return Path(self._data["settings"].get("playlists_dir", "."))
 
     @property
     def ui_config(self) -> dict:
@@ -141,20 +138,22 @@ class AppState:
         self._data["state"]["volume"] = max(0.0, min(1.0, float(value)))
 
     @property
-    def current_library_path(self) -> str:
-        return self._data["state"]["current_library_path"]
+    def current_library_path(self) -> Path:
+        val = self._data["state"].get("current_library_path", "")
+        return Path(val) if val else self.root_path
 
     @current_library_path.setter
-    def current_library_path(self, value: str) -> None:
-        self._data["state"]["current_library_path"] = value
+    def current_library_path(self, value: Path | str) -> None:
+        self._data["state"]["current_library_path"] = str(value)
 
     @property
-    def current_track_path(self) -> str:
-        return self._data["state"]["current_track_path"]
+    def current_track_path(self) -> Path:
+        val = self._data["state"].get("current_track_path", "")
+        return Path(val) if val else Path("")
 
     @current_track_path.setter
-    def current_track_path(self, value: str) -> None:
-        self._data["state"]["current_track_path"] = value
+    def current_track_path(self, value: Path | str) -> None:
+        self._data["state"]["current_track_path"] = str(value)
 
     @property
     def current_track_index(self) -> int:

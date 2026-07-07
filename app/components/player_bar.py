@@ -28,7 +28,6 @@ class PlayerBar(SimpleCardWidget):
         
        
     def __init_ui(self) -> None:
-        print("PlayerBar.py: start __init_ui")
         self.setFixedHeight(80)
         self.setBorderRadius(16)
         self.setStyleSheet("""

@@ -38,7 +38,7 @@ class MainFluentWindow(FluentWindow):
 
 
     def __create_windows(self):
-        self.home_window = HomeWindow(self.file_browser, self.app_state, self)
+        self.home_window = HomeWindow(self.app_state, self)
         self.settings_window = SettingsWindow(self.app_state, self)
 
 
@@ -63,7 +63,14 @@ class MainFluentWindow(FluentWindow):
         # Сохранение состояния при смене трека (в память, не в файл!)
         self.audio_player.trackChanged.connect(self._on_track_changed)  # TODO: переделать впервую очередь. вынести из класса
 
-        self.file_browser.directoryChanged.connect(self.home_window._load_dir)
+        self.home_window.itemClicked.connect(self.file_browser.handle_item_click)
+        self.home_window.backRequested.connect(self.file_browser.back_previous_dir)
+        self.home_window.requestDirectory.connect(self.file_browser.load_directory)
+
+        self.file_browser.directoryLoaded.connect(self.home_window.onDirectoryLoaded)
+        self.file_browser.directoryChanged.connect(self.home_window.requestDirectory)
+
+        self.home_window.requestDirectory.emit()
 
 
     def _restore_session(self):
@@ -92,8 +99,8 @@ class MainFluentWindow(FluentWindow):
         Override closing window event.
         Save state in file.
         """
-        if self.file_browser:
-            self.app_state.current_library_path = str(self.file_browser.current_pos)
+        # if self.file_browser:
+        #     self.app_state.current_library_path = str(self.file_browser.current_pos)
         
         self.app_state.save()
         super().closeEvent(event)
@@ -113,7 +120,7 @@ class MainFluentWindow(FluentWindow):
         """ Set Window title. Set window in screen center. 
         Create navigation field
         """
-        self.setWindowTitle("Spotify Style")
+        self.setWindowTitle("Flacify")
         self.__resize_to_center(200,200)
         self.__create_nav_field()
         

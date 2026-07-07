@@ -4,8 +4,6 @@ import time
 from pathlib import Path
 from random import shuffle
 
-import app
-
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "HIDE"
 
 from pygame import USEREVENT, display, event as pg_event, mixer
@@ -53,7 +51,6 @@ class AudioPlayerController(QObject):
         if self.app_state:
             self._current_volume = self.app_state.volume
             self._apply_volume()
-            print(f"[AudioPlayer] Restore volume: {self._current_volume}")
 
         self._event_timer = QTimer(self)
         self._event_timer.timeout.connect(self.update)
@@ -108,7 +105,6 @@ class AudioPlayerController(QObject):
             has_next = self._current_track_index < len(self.current_playlist) - 1
             self.shuffleButtonEnabled.emit(has_next)
             
-            print("[AudioPlayer] Сессия восстановлена (Pause)")
             return True
         except Exception as e:
             print(f"[AudioPlayer] Error restoring session: {e}")
@@ -126,7 +122,6 @@ class AudioPlayerController(QObject):
                 idx = self.app_state.current_track_index
                 if 0 <= idx < len(self.current_playlist):
                     self._current_track_index = idx
-                    print(f"[AudioPlayer] Плейлист восстановлен: {len(paths)} треков")
         except Exception as e:
             print(f"[AudioPlayer] Ошибка восстановления плейлиста: {e}")
 
@@ -189,7 +184,6 @@ class AudioPlayerController(QObject):
         """ Skip to previous track
         Decrement index of current_track index to -= 1 
         """
-        # print("prev_track")
         prev_idx = self._current_track_index - 1
 
         if prev_idx < 0:
@@ -291,14 +285,10 @@ class AudioPlayerController(QObject):
     
 
     def shuffle_playlist(self) -> None:
-        print("before:")
-        print(*self.current_playlist, sep='\n')
         temp_playlist = self.current_playlist[self.current_track_index+1:]
         shuffle(temp_playlist)
         self.current_playlist[self.current_track_index+1:] = temp_playlist
-        print("after:")
         print(*self.current_playlist, sep='\n')
-        print('--------------------------------')
 
 
     def _get_duration_ms(self, file_path: Path) -> int:

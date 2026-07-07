@@ -1,23 +1,25 @@
 #main_window/home_window.py
 from pathlib import Path
 
-from PyQt5.QtGui import QColor, QPainter
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QVBoxLayout, QWidget
 
 from qfluentwidgets import ScrollArea
 
-import app
 from app.components import FolderListItem, SongListItem, PlayerBar
-from app.core import AudioPlayerController, FileBrowserModel, MetadataReader
+from app.core import MetadataReader
 from app.core.app_state import AppState
 
 # Home application page
 class HomeWindow(QWidget):
-    def __init__(self, file_browser: FileBrowserModel, app_state: AppState, parent=None):
+    itemClicked = pyqtSignal(Path)
+    backRequested = pyqtSignal()
+    requestDirectory = pyqtSignal()
+
+    def __init__(self, app_state: AppState, parent=None):
         super().__init__(parent)
         self.setObjectName("HomeWindow") 
         self.setAutoFillBackground(True)
-        self.file_browser = file_browser
         self.app_state = app_state
         self.__init_ui(app_state)
 
@@ -45,38 +47,35 @@ class HomeWindow(QWidget):
         self.scroll_area.setWidget(self.view_container)
         self.main_vert_layout.addWidget(self.scroll_area)
 
-        self._load_dir() # Первичная загрузка
-
         self.player_bar = PlayerBar(app_state)
         self.main_vert_layout.addWidget(self.player_bar)
 
 
-    def _load_dir(self):
-        items = self.file_browser.current_dir
+    def onDirectoryLoaded(self, items: list[Path]):
+        """Слот для получения списка файлов от FileBrowserModel"""
         self._render_items(items)
 
-
-    def _render_items(self, items: dict[int, Path]):
+    def _render_items(self, items: list[Path]):
         # Очистка текущего layout
         while self.view_layout.count():
             item = self.view_layout.takeAt(0)
             widget = item.widget()
             if widget:
                 widget.deleteLater()
-        
+
         # Кнопка "Назад" [..], если мы не в корневой папке
-        if self.file_browser.current_pos != self.file_browser.root_path:
+        if self.app_state.current_library_path != self.app_state.root_path:
             prev_item = FolderListItem("[..]")
-            prev_item.itemClicked.connect(self.file_browser.back_previous_dir)
+            prev_item.itemClicked.connect(self.backRequested.emit)
             self.view_layout.addWidget(prev_item)
 
         # Рендер файлов и папок
-        for key, full_path in items.items():
+        for full_path in items:
             if not full_path.exists():
                 continue
-
+            
             if full_path.is_dir():
-                list_item =  FolderListItem(full_path.name)
+                list_item = FolderListItem(full_path.name)
             else:
                 meta = MetadataReader.get_metadata(full_path)
                 list_item = SongListItem(
@@ -87,7 +86,8 @@ class HomeWindow(QWidget):
                     cover_data=meta.get('cover_data')
                 )
             
-            list_item.itemClicked.connect(self.file_browser.handle_item_click)
+            # Эмитим сигнал с путем при клике
+            list_item.itemClicked.connect(lambda checked, p=full_path: self.itemClicked.emit(p))
             self.view_layout.addWidget(list_item)
 
         self.view_layout.addStretch(1)

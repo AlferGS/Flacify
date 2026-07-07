@@ -44,7 +44,7 @@ class SettingsWindow(QWidget):
         self.path_label = QLabel("Path to audio folder:")
         self.path_label.setStyleSheet("color: #FFFFFF; font-size: 12px;")
         # LineEdit
-        current_path = self.app_state.root_path
+        current_path = str(self.app_state.root_path)
         self.path_lineedit = QLineEdit(current_path if current_path else "")
         self.path_lineedit.setPlaceholderText("Select audio library folder...")
         self.path_lineedit.setStyleSheet("""
