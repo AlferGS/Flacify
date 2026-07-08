@@ -51,6 +51,7 @@ class MainFluentWindow(FluentWindow):
         self.audio_player.shuffleButtonEnabled.connect(self.home_window.player_bar._toggle_shuffle_button)
         self.audio_player.trackChanged.connect(self.home_window.player_bar._update_info_panel)
         self.audio_player.trackSliderChanged.connect(self.home_window.player_bar._update_progress_slider)
+        self.audio_player.repeatModeChanged.connect(self.home_window.player_bar._on_repeat_mode_changed)
         # Signals PlayerBar -> AudioPlayerController
         self.home_window.player_bar.shuffle_button.clicked.connect(self.audio_player.shuffle_playlist)
         self.home_window.player_bar.prev_button.clicked.connect(self.audio_player.prev_track)
@@ -64,6 +65,7 @@ class MainFluentWindow(FluentWindow):
 
         # Сохранение состояния при смене трека (в память, не в файл!)
         # self.audio_player.trackChanged.connect(self._on_track_changed)  # TODO: переделать впервую очередь. вынести из класса
+        
 
         self.home_window.itemClicked.connect(self.file_browser.handle_item_click)
         self.home_window.backRequested.connect(self.file_browser.back_previous_dir)

@@ -5,10 +5,9 @@ from PyQt5.QtWidgets import QGridLayout, QHBoxLayout, QLabel, QVBoxLayout
 
 from qfluentwidgets import FluentIcon as FIF, SimpleCardWidget, TransparentToolButton
 
-from app.core import AppState
+from app.core import AppState, RepeatMode
 from .marquee_label import MarqueeLabel
 from .hover_slider import HoverSlider
-
 
 class PlayerBar(SimpleCardWidget):
     togglePlayBtn = pyqtSignal()            # toggle by click play btn
@@ -122,7 +121,6 @@ class PlayerBar(SimpleCardWidget):
 
         self.shuffle_button = TransparentToolButton(FIF.SYNC)
         self.shuffle_button.setFixedSize(30, 30)
-        # self.shuffle_button.setEnabled(False)
 
         self.prev_button = TransparentToolButton(FIF.CARE_LEFT_SOLID)
         self.prev_button.setFixedSize(30, 30)
@@ -145,6 +143,21 @@ class PlayerBar(SimpleCardWidget):
         self.next_button.setFixedSize(30, 30)
         self.repeat_button = TransparentToolButton(FIF.ROTATE)
         self.repeat_button.setFixedSize(30, 30)
+        self.repeat_indicator = QLabel("", self.repeat_button)
+        self.repeat_indicator.setFixedSize(12, 12)
+        self.repeat_indicator.setAlignment(Qt.AlignCenter)
+        self.repeat_indicator.setStyleSheet("""
+            QLabel {
+                color: #1DB954;
+                background: transparent;
+                font-size: 11px;
+                font-weight: bold;
+            }
+        """)
+        self.repeat_indicator.move(5, 16)
+        self.repeat_indicator.setAttribute(Qt.WA_TranslucentBackground)
+        self.repeat_indicator.hide()  
+        self.repeat_indicator.raise_()  
         
         btns_layout.addStretch()
         btns_layout.addWidget(self.shuffle_button)
@@ -204,6 +217,38 @@ class PlayerBar(SimpleCardWidget):
             position_ms = self.player_slider.value()
             self.current_track_time.setText(self.__format_time(position_ms))
             self.audioSliderReleased.emit(position_ms)
+
+
+    def _on_repeat_mode_changed(self, mode: RepeatMode) -> None:
+        if mode == RepeatMode.OFF:
+            self.repeat_indicator.hide()
+            self.repeat_button.setToolTip("Loop: Off")
+        elif mode == RepeatMode.ALBUM_LOOP:
+            self.repeat_indicator.setText("a")
+            self.repeat_indicator.setStyleSheet("""
+            QLabel {
+                color: #1DB954;
+                background: transparent;
+                font-size: 13px;
+                font-weight: bold;
+            }
+        """)
+            self.repeat_indicator.show()
+            self.repeat_indicator.raise_()
+            self.repeat_button.setToolTip("Loop: Album")
+        elif mode == RepeatMode.SONG_LOOP:
+            self.repeat_indicator.setText("1")
+            self.repeat_indicator.setStyleSheet("""
+            QLabel {
+                color: #1DB954;
+                background: transparent;
+                font-size: 11px;
+                font-weight: bold;
+            }
+        """)
+            self.repeat_indicator.show()
+            self.repeat_indicator.raise_()
+            self.repeat_button.setToolTip("Loop: Song")
 
 
     def __create_volume_panel(self) -> QHBoxLayout:

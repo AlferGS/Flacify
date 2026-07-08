@@ -13,22 +13,11 @@ from PyQt5.QtCore import QObject, QTimer, pyqtSignal
 
 from .metadata_reader import MetadataReader
 from .app_state import AppState
+from .repeat_mode import RepeatMode
 
 # Custom Event for track end (also play/stop)
 TRACK_END_EVENT = USEREVENT + 1
 
-from enum import Enum, auto
-
-class RepeatMode(Enum):
-    OFF = auto()            # Off repeat
-    ALBUM_LOOP = auto()     # Repeat playlist
-    SONG_LOOP = auto()      # Repeat song
-
-    def next(self) -> "RepeatMode":
-        """Return next state: OFF -> ALBUM_LOOP -> SONG_LOOP -> OFF"""
-        modes = list(RepeatMode)
-        current_index = modes.index(self)
-        return modes[(current_index + 1) % len(modes)]
 
 class AudioPlayerController(QObject):
     playbackStateChanged = pyqtSignal(bool) # True = Playing, False = Paused/Stopped
@@ -36,6 +25,7 @@ class AudioPlayerController(QObject):
     trackChanged = pyqtSignal(str, str, str, object)  #title, artist, album, cover_data
     trackSliderChanged = pyqtSignal(int, int) # current_ms, total_ms
     sessionRestored = pyqtSignal(str, str, str, object) # title, artist, album, cover_data
+    repeatModeChanged = pyqtSignal(RepeatMode)
 
 
     def __init__(self, app_state: AppState = None, parent=None) -> None:
@@ -186,7 +176,7 @@ class AudioPlayerController(QObject):
             
             # Shuffle button logic
             has_next = self.app_state.current_track_index < len(self.app_state.playlist_paths) - 1
-            self.shuffleButtonEnabled.emit(has_next)
+            self.shuffleButtonEnabled.emit(has_next or self.is_repeated == RepeatMode.ALBUM_LOOP)
             
         except Exception as e:
             print(f"Error playing: {e}")
@@ -220,6 +210,7 @@ class AudioPlayerController(QObject):
     def toggle_repeat(self):
         self.is_repeated = self.is_repeated.next()
         print(f"Repeat mode changed to: {self.is_repeated.name}")
+        self.repeatModeChanged.emit(self.is_repeated)
 
 
     def set_volume(self, volume: float):
@@ -251,7 +242,7 @@ class AudioPlayerController(QObject):
         full_playlist[self.app_state.current_track_index+1:] = tail_to_shuffle
 
         self.app_state.playlist_paths = full_playlist
-        # print("\t new shuffled playlist:", *self.app_state.playlist_paths, "-----------", sep='\n')
+        print("\t new shuffled playlist:", *self.app_state.playlist_paths, "-----------", sep='\n')
 
 
     def _get_duration_ms(self, file_path: Path) -> int:
