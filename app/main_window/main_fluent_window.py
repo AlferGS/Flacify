@@ -56,6 +56,7 @@ class MainFluentWindow(FluentWindow):
         self.home_window.player_bar.prev_button.clicked.connect(self.audio_player.prev_track)
         self.home_window.player_bar.togglePlayBtn.connect(self.audio_player.pause_track)
         self.home_window.player_bar.next_button.clicked.connect(self.audio_player.next_track)
+        self.home_window.player_bar.repeat_button.clicked.connect(self.audio_player.toggle_repeat)
         self.home_window.player_bar.audioSliderReleased.connect(self.audio_player.seek)
         self.home_window.player_bar.toggleMuteBtn.connect(self.audio_player.toggle_mute)
         self.home_window.player_bar.volumeSliderChanged.connect(self.audio_player.set_volume)

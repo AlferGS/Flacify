@@ -17,6 +17,19 @@ from .app_state import AppState
 # Custom Event for track end (also play/stop)
 TRACK_END_EVENT = USEREVENT + 1
 
+from enum import Enum, auto
+
+class RepeatMode(Enum):
+    OFF = auto()            # Off repeat
+    ALBUM_LOOP = auto()     # Repeat playlist
+    SONG_LOOP = auto()      # Repeat song
+
+    def next(self) -> "RepeatMode":
+        """Return next state: OFF -> ALBUM_LOOP -> SONG_LOOP -> OFF"""
+        modes = list(RepeatMode)
+        current_index = modes.index(self)
+        return modes[(current_index + 1) % len(modes)]
+
 class AudioPlayerController(QObject):
     playbackStateChanged = pyqtSignal(bool) # True = Playing, False = Paused/Stopped
     shuffleButtonEnabled = pyqtSignal(bool) # is shuffle Button Enabled
@@ -35,7 +48,7 @@ class AudioPlayerController(QObject):
         self.is_playing = False
         self.is_paused = False
         self.is_muted = False
-        self.is_album_loop = False
+        self.is_repeated: RepeatMode = RepeatMode.OFF
         # TODO: Обновить переменные исходя из того что имеется доступ к app_state
         
         if not mixer.get_init():
@@ -101,30 +114,39 @@ class AudioPlayerController(QObject):
         """ Skip to next track
         Increment index of current_track index to += 1 
         """
+        if not self.app_state.playlist_paths:
+            return
+        
         next_idx = self.app_state.current_track_index + 1
 
         if next_idx >= len(self.app_state.playlist_paths):
-            if self.is_album_loop:
-                self.app_state.current_track_index = 0
-                self.app_state.current_track_path = self.app_state.playlist_paths[0]
-                self.play_current_track()
-        else:
-            self.app_state.current_track_index = next_idx
-            self.app_state.current_track_path = self.app_state.playlist_paths[next_idx]
-            self.play_current_track()
+            if self.is_repeated == RepeatMode.ALBUM_LOOP:
+                next_idx = 0
+            else:
+                return
+
+        self.app_state.current_track_index = next_idx
+        self.app_state.current_track_path = self.app_state.playlist_paths[next_idx]
+        self.play_current_track()
 
 
     def prev_track(self):
         """ Skip to previous track
         Decrement index of current_track index to -= 1 
         """
+        if not self.app_state.playlist_paths:
+            return
+
         prev_idx = self.app_state.current_track_index - 1
 
         if prev_idx < 0:
-            if self.is_album_loop:
-                self.app_state.current_track_index = len(self.app_state.playlist_paths) - 1
+            if self.is_repeated == RepeatMode.ALBUM_LOOP:
+                prev_idx = len(self.app_state.playlist_paths) - 1
+                self.app_state.current_track_index = prev_idx
+                self.app_state.current_track_path = self.app_state.playlist_paths[prev_idx]
                 self.play_current_track()
             else:
+                # OFF / SONG_LOOP — остаёмся на первом треке, перематываем в начало
                 self.app_state.current_track_index = 0
                 self.app_state.current_track_path = self.app_state.playlist_paths[0]
                 mixer.music.rewind()
@@ -193,6 +215,11 @@ class AudioPlayerController(QObject):
         self.is_muted = not self.is_muted
         self._apply_volume()
         return self.is_muted
+    
+
+    def toggle_repeat(self):
+        self.is_repeated = self.is_repeated.next()
+        print(f"Repeat mode changed to: {self.is_repeated.name}")
 
 
     def set_volume(self, volume: float):
@@ -273,6 +300,30 @@ class AudioPlayerController(QObject):
             print(f"Seek error: {e}")
 
 
+    def _on_track_finished(self) -> None:
+        """
+        Вызывается, когда трек доигрался до конца естественным образом.
+        Решает, что делать дальше, исходя из текущего RepeatMode.
+        """
+        playlist = self.app_state.playlist_paths
+        if not playlist:
+            return
+
+        if self.is_repeated == RepeatMode.SONG_LOOP:
+            self.play_current_track()
+            return
+
+        if self.is_repeated == RepeatMode.ALBUM_LOOP:
+            self.next_track()
+            return
+
+        if self.app_state.current_track_index >= len(playlist) - 1:
+            self.playbackStateChanged.emit(False)
+            return
+
+        self.next_track()
+
+
     def update(self):
         """
         Этот метод должен вызываться регулярно в основном цикле приложения.
@@ -280,9 +331,8 @@ class AudioPlayerController(QObject):
         """
         for evt in pg_event.get():
             if evt.type == TRACK_END_EVENT and not self.is_paused:
-                print("update except")
                 self.is_playing = False
-                self.next_track()
+                self._on_track_finished()
                 break 
         
         if self.is_playing and not self.is_paused and self.app_state.playlist_paths:
