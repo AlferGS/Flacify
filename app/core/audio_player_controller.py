@@ -4,6 +4,8 @@ import time
 from pathlib import Path
 from random import shuffle
 
+from pygame.gfxdraw import filled_circle
+
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "HIDE"
 
 from pygame import USEREVENT, display, event as pg_event, mixer
@@ -23,21 +25,17 @@ class AudioPlayerController(QObject):
     sessionRestored = pyqtSignal(str, str, str, object) # title, artist, album, cover_data
 
 
-    def __init__(self, playlist:list[Path]=None, app_state: AppState = None, parent=None) -> None:
+    def __init__(self, app_state: AppState = None, parent=None) -> None:
         super().__init__(parent)
         self.app_state = app_state
-        self.current_playlist = playlist if playlist else []
-        self._current_track_index = 0
         self._play_start_time = 0.0
         self._play_start_position_ms = 0
         self._pause_position_ms = 0
         self._total_duration_ms = 0
-        self._current_volume = 0.25
         self.is_playing = False
         self.is_paused = False
         self.is_muted = False
         self.is_album_loop = False
-        self.message = ""
         # TODO: Обновить переменные исходя из того что имеется доступ к app_state
         
         if not mixer.get_init():
@@ -47,29 +45,13 @@ class AudioPlayerController(QObject):
 
         mixer.music.set_endevent(TRACK_END_EVENT)
 
-        # Restore volume from AppState
-        if self.app_state:
-            self._current_volume = self.app_state.volume
-            self._apply_volume()
-
         self._event_timer = QTimer(self)
         self._event_timer.timeout.connect(self.update)
         self._event_timer.start(100)
 
+        # Restore volume and playlist from AppState
         if self.app_state and self.app_state.playlist_paths:
-            self._restore_playlist_from_state()
-
-
-    @property
-    def current_track_index(self) -> int:
-        return self._current_track_index
-
-    @current_track_index.setter
-    def current_track_index(self, index:int) -> None:
-        if 0 <= index < len(self.current_playlist):
-            self._current_track_index = index
-        else:
-            self.message = "Index out of range"
+            self._apply_volume()
 
 
     def restore_last_session(self) -> bool:
@@ -78,15 +60,11 @@ class AudioPlayerController(QObject):
         Load file in mixer and update metadata, but do not playing it.
         Return True, if restoring was successful.
         """
-        if not self.app_state or not self.app_state.current_track_path:
+        if not self.app_state or not self.app_state.current_track_path.exists():
             return False
             
-        file_path = Path(self.app_state.current_track_path)
-        if not file_path.exists():
-            return False
-
         try:
-            mixer.music.load(str(file_path))
+            mixer.music.load(str(self.app_state.current_track_path))
             mixer.music.play()
             mixer.music.pause()
             
@@ -95,14 +73,14 @@ class AudioPlayerController(QObject):
             
             self.playbackStateChanged.emit(True)
             
-            meta = MetadataReader.get_metadata(file_path)
+            meta = MetadataReader.get_metadata(self.app_state.current_track_path)
             self.trackChanged.emit(meta["title"], meta["artist"], meta["album"], meta["cover_data"])
             
-            self._total_duration_ms = self._get_duration_ms(file_path)
+            self._total_duration_ms = self._get_duration_ms(self.app_state.current_track_path)
             self._play_start_time = time.time()
             self._play_start_position_ms = 0
             
-            has_next = self._current_track_index < len(self.current_playlist) - 1
+            has_next = self.app_state.current_track_index < len(self.app_state.playlist_paths) - 1
             self.shuffleButtonEnabled.emit(has_next)
             
             return True
@@ -111,72 +89,28 @@ class AudioPlayerController(QObject):
             return False
 
 
-
-    def _restore_playlist_from_state(self):
-        """Загружает плейлист из AppState в текущий объект."""
-        try:
-            paths = [Path(p) for p in self.app_state.playlist_paths if Path(p).exists()]
-            if paths:
-                self.current_playlist = paths
-                # Индекс восстанавливается из state
-                idx = self.app_state.current_track_index
-                if 0 <= idx < len(self.current_playlist):
-                    self._current_track_index = idx
-        except Exception as e:
-            print(f"[AudioPlayer] Ошибка восстановления плейлиста: {e}")
-
-
-    def set_playlist(self, playlist: list[Path], start_index: int = 0) -> None:
-        """Устанавливает новый плейлист и начинает воспроизведение."""
-        if not playlist:
-            return
-            
-        self.current_playlist = playlist
-        self._current_track_index = start_index
-        
-        # Сохраняем состояние плейлиста в AppState (в память)
-        if self.app_state:
-            current_track = self.current_playlist[self._current_track_index]
-            self.app_state.save_playlist_state(self.current_playlist, self._current_track_index, current_track)
-            
-        self.play_current_track()
-    
-
-    def set_playlist(self, playlist: list[Path], start_index: int=0) -> None:
-        """ Safety change playlist
-        Args:
-            playlist (list[Path]): new playlist
-            start_index (int, optional): new index of song. Defaults to 0.
-        """
-        self.current_playlist = playlist
-        self.current_track_index = start_index
-        if self.current_playlist:
-            self.play_current_track()
-
-
     def get_song_name(self) -> str:
         """ Return song name
         Returns:
             str: song name
         """
-        return self.current_playlist[self.current_track_index].name
+        return self.app_state.playlist_paths[self.app_state.current_track_index].name
 
 
     def next_track(self) -> None:
         """ Skip to next track
         Increment index of current_track index to += 1 
         """
-        next_idx = self._current_track_index + 1
+        next_idx = self.app_state.current_track_index + 1
 
-        if next_idx >= len(self.current_playlist):
+        if next_idx >= len(self.app_state.playlist_paths):
             if self.is_album_loop:
-                self._current_track_index = 0
+                self.app_state.current_track_index = 0
+                self.app_state.current_track_path = self.app_state.playlist_paths[0]
                 self.play_current_track()
-    
-            else:
-                self.message = "End of album"
         else:
-            self._current_track_index = next_idx
+            self.app_state.current_track_index = next_idx
+            self.app_state.current_track_path = self.app_state.playlist_paths[next_idx]
             self.play_current_track()
 
 
@@ -184,34 +118,33 @@ class AudioPlayerController(QObject):
         """ Skip to previous track
         Decrement index of current_track index to -= 1 
         """
-        prev_idx = self._current_track_index - 1
+        prev_idx = self.app_state.current_track_index - 1
 
         if prev_idx < 0:
             if self.is_album_loop:
-                self._current_track_index = len(self.current_playlist) - 1
+                self.app_state.current_track_index = len(self.app_state.playlist_paths) - 1
                 self.play_current_track()
             else:
-                self.message = "Start of album"
-                self._current_track_index = 0
+                self.app_state.current_track_index = 0
+                self.app_state.current_track_path = self.app_state.playlist_paths[0]
                 mixer.music.rewind()
                 self._play_start_time = time.time()
                 self._play_start_position_ms = 0
         else:
-            self._current_track_index = prev_idx
+            self.app_state.current_track_index = prev_idx
+            self.app_state.current_track_path = self.app_state.playlist_paths[prev_idx]
             self.play_current_track()
 
 
     def play_current_track(self) -> None:
         """ Start play track
-        Use current_track_index to path from current_playlist[]
+        Use current_track_index to path from app_state.playlist_paths[]
         """
-        if not self.current_playlist:
+        if not self.app_state.playlist_paths:
             return
         
-        file_path = self.current_playlist[self._current_track_index]
-        
         try:
-            mixer.music.load(str(file_path))
+            mixer.music.load(str(self.app_state.current_track_path))
             mixer.music.play()
             
             self.is_playing = True
@@ -221,16 +154,16 @@ class AudioPlayerController(QObject):
             self.playbackStateChanged.emit(True)
             
             # Метаданные
-            meta = MetadataReader.get_metadata(file_path)
+            meta = MetadataReader.get_metadata(self.app_state.current_track_path)
             self.trackChanged.emit(meta["title"], meta["artist"], meta["album"], meta["cover_data"])
             
             # Длительность
-            self._total_duration_ms = self._get_duration_ms(file_path)
+            self._total_duration_ms = self._get_duration_ms(self.app_state.current_track_path)
             self._play_start_time = time.time()
             self._play_start_position_ms = 0
             
             # Shuffle button logic
-            has_next = self._current_track_index < len(self.current_playlist) - 1
+            has_next = self.app_state.current_track_index < len(self.app_state.playlist_paths) - 1
             self.shuffleButtonEnabled.emit(has_next)
             
         except Exception as e:
@@ -239,7 +172,7 @@ class AudioPlayerController(QObject):
 
 
     def pause_track(self):
-        if not self.current_playlist:
+        if not self.app_state.playlist_paths:
             return
 
         if self.is_playing and not self.is_paused:
@@ -264,20 +197,17 @@ class AudioPlayerController(QObject):
 
     def set_volume(self, volume: float):
         """Set volume (0.0 - 1.0). Auto sync is_muted."""
-        self._current_volume = max(0.0, min(1.0, volume))
-        self.is_muted = (self._current_volume == 0.0)
+        self.app_state.volume = max(0.0, min(1.0, volume))
+        self.is_muted = (self.app_state.volume == 0.0)
         self._apply_volume()
 
-        if self.app_state:
-            self.app_state.volume = self._current_volume
-
-
+        
     def _apply_volume(self):
         """Set new volume in accordance with is_muted flag."""
         if self.is_muted:
             mixer.music.set_volume(0.0)
         else:
-            mixer.music.set_volume(self._current_volume)
+            mixer.music.set_volume(self.app_state.volume)
 
         
     def is_end_of_track(self):
@@ -285,10 +215,16 @@ class AudioPlayerController(QObject):
     
 
     def shuffle_playlist(self) -> None:
-        temp_playlist = self.current_playlist[self.current_track_index+1:]
-        shuffle(temp_playlist)
-        self.current_playlist[self.current_track_index+1:] = temp_playlist
-        print(*self.current_playlist, sep='\n')
+        full_playlist = self.app_state.playlist_paths
+        if not full_playlist or self.app_state.current_track_index >= len(full_playlist):
+            return
+        
+        tail_to_shuffle = full_playlist[self.app_state.current_track_index+1:]
+        shuffle(tail_to_shuffle)
+        full_playlist[self.app_state.current_track_index+1:] = tail_to_shuffle
+
+        self.app_state.playlist_paths = full_playlist
+        # print("\t new shuffled playlist:", *self.app_state.playlist_paths, "-----------", sep='\n')
 
 
     def _get_duration_ms(self, file_path: Path) -> int:
@@ -344,11 +280,11 @@ class AudioPlayerController(QObject):
         """
         for evt in pg_event.get():
             if evt.type == TRACK_END_EVENT and not self.is_paused:
-                self.message = "Its track end event"
+                print("update except")
                 self.is_playing = False
                 self.next_track()
                 break 
         
-        if self.is_playing and not self.is_paused and self.current_playlist:
+        if self.is_playing and not self.is_paused and self.app_state.playlist_paths:
             current_ms = self._get_current_position_ms()
             self.trackSliderChanged.emit(current_ms, self._total_duration_ms)

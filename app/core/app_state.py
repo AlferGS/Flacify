@@ -2,6 +2,8 @@
 import json
 from pathlib import Path
 
+from pygame.mixer_music import play
+
 DEFAULT_CONFIG = {
     "settings": {
         "root_path": "D:\\Audio",
@@ -48,6 +50,7 @@ class AppState:
         self._data: dict = {}
         self._load()
 
+
     def _load(self) -> None:
         """Загружает конфиг из файла. Создаёт дефолты для отсутствующих ключей."""
         if self._config_path.exists():
@@ -65,6 +68,7 @@ class AppState:
         # Рекурсивно дополняем отсутствующие ключи из DEFAULT_CONFIG
         self._merge_defaults(self._data, DEFAULT_CONFIG)
 
+
     def save(self) -> None:
         """
         Явная запись текущего состояния в файл.
@@ -78,14 +82,28 @@ class AppState:
         except Exception as e:
             print(f"[AppState] Ошибка сохранения: {e}")
 
-    def save_playlist_state(self, playlist: list[Path], index: int, track_path: Path) -> None:
-        """
-        Пакетное сохранение состояния плейлиста.
-        Вызывается при формировании нового плейлиста или смене трека.
-        """
-        self._data["state"]["playlist_paths"] = [str(p) for p in playlist]
-        self._data["state"]["current_track_index"] = index
-        self._data["state"]["current_track_path"] = str(track_path)
+
+    def print_app_state(self):
+        print(f"""
+        \t--- settings ---
+        root_path = {self.root_path}
+        supported_formats = {self.supported_formats}
+        excluded_folders = {self.excluded_folders}
+        playlists_dir = {self.playlists_dir}
+        ui_config = {self.ui_config}
+        ------------------
+         \t---- state ----
+        volume = {self.volume}
+        current_library_path = {self.current_library_path}
+        current_track_path = {self.current_track_path}
+        current_track_index = {self.current_track_index}
+        playlist_paths = {[f'{str(x)}' for x in self.playlist_paths]}
+        ------------------
+         \t--- library ---
+        library = {self.library}
+        ------------------
+        """)
+
 
     @staticmethod
     def _merge_defaults(target: dict, defaults: dict) -> None:
@@ -149,6 +167,11 @@ class AppState:
     @property
     def current_track_path(self) -> Path:
         val = self._data["state"].get("current_track_path", "")
+        if val == "":
+            playlist = self._data["state"].get("playlist_paths", "")
+            idx = self._data["state"].get("current_track_index", "")
+            if playlist and idx:
+                val = playlist[idx]
         return Path(val) if val else Path("")
 
     @current_track_path.setter
@@ -164,9 +187,9 @@ class AppState:
         self._data["state"]["current_track_index"] = int(value)
 
     @property
-    def playlist_paths(self) -> list[str]:
+    def playlist_paths(self) -> list[Path]:
         """Возвращает список путей треков последнего плейлиста."""
-        return self._data["state"].get("playlist_paths", [])
+        return [Path(p) for p in self._data["state"].get("playlist_paths", [])]
 
     @playlist_paths.setter
     def playlist_paths(self, paths: list[Path]) -> None:

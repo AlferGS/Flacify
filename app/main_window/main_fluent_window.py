@@ -28,13 +28,14 @@ class MainFluentWindow(FluentWindow):
 
         self.__init_ui()
 
-        self._restore_session()
+        if not self._restore_session():
+            print("session wasn't restored")
 
 
     def __create_core_objects(self):
         self.app_state = AppState()
-        self.audio_player = AudioPlayerController([], self.app_state, self)     # TODO: избавться от передачи плейлиста на этом уровне
-        self.file_browser = FileBrowserModel(self.audio_player, self.app_state, self)
+        self.audio_player = AudioPlayerController(self.app_state, self)     # TODO: избавться от передачи плейлиста на этом уровне
+        self.file_browser = FileBrowserModel(self.app_state, self)
 
 
     def __create_windows(self):
@@ -61,7 +62,7 @@ class MainFluentWindow(FluentWindow):
         # TODO: ADD Repeat button connect
 
         # Сохранение состояния при смене трека (в память, не в файл!)
-        self.audio_player.trackChanged.connect(self._on_track_changed)  # TODO: переделать впервую очередь. вынести из класса
+        # self.audio_player.trackChanged.connect(self._on_track_changed)  # TODO: переделать впервую очередь. вынести из класса
 
         self.home_window.itemClicked.connect(self.file_browser.handle_item_click)
         self.home_window.backRequested.connect(self.file_browser.back_previous_dir)
@@ -69,6 +70,9 @@ class MainFluentWindow(FluentWindow):
 
         self.file_browser.directoryLoaded.connect(self.home_window.onDirectoryLoaded)
         self.file_browser.directoryChanged.connect(self.home_window.requestDirectory)
+        self.file_browser.playbackStarted.connect(self.audio_player.play_current_track)
+        self.file_browser.nextTrack.connect(self.audio_player.next_track)
+        self.file_browser.prevTrack.connect(self.audio_player.prev_track)
 
         self.home_window.requestDirectory.emit()
 
@@ -78,20 +82,7 @@ class MainFluentWindow(FluentWindow):
         Invoke restoring last track.
         If file exist, load it in player and update UI on start of track.
         """
-        success = self.audio_player.restore_last_session()
-
-
-    def _on_track_changed(self, title: str, artist: str, album: str, cover: object):
-        """Update state in appstate class when track changed.
-        Move this code from mainfluentwindow to appstate
-        """
-        if self.audio_player.current_playlist:
-            current_path = self.audio_player.current_playlist[self.audio_player.current_track_index]
-            self.app_state.save_playlist_state(
-                self.audio_player.current_playlist,
-                self.audio_player.current_track_index,
-                current_path
-            )
+        return self.audio_player.restore_last_session()
 
 
     def closeEvent(self, event: QCloseEvent):

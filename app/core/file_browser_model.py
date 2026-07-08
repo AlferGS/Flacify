@@ -2,8 +2,9 @@
 from pathlib import Path
 
 from PyQt5.QtCore import QObject, pyqtSignal
+from pygame.mixer_music import play
+from pygame.sprite import LayeredDirty
 
-from .audio_player_controller import AudioPlayerController
 from .metadata_reader import MetadataReader
 from .app_state import AppState
 
@@ -12,12 +13,14 @@ class FileBrowserModel(QObject):
     directoryChanged = pyqtSignal()
     directoryLoaded = pyqtSignal(list)
     playbackStarted = pyqtSignal(Path)
+    nextTrack = pyqtSignal()
+    prevTrack = pyqtSignal()
+    
 
-    def __init__(self, audio_player: AudioPlayerController, app_state: AppState, parent=None):
+    def __init__(self, app_state: AppState, parent=None):
         super().__init__(parent)
-        self.audio_player = audio_player
         self.app_state = app_state
-
+        
         saved_path = self.app_state.current_library_path
         root = self.app_state.root_path
         if not saved_path.exists() or not saved_path.is_relative_to(root):
@@ -88,38 +91,12 @@ class FileBrowserModel(QObject):
             print("No audio files in directory")
             return
         try:
-            start_index = playlist.index(path)
-            self.audio_player.set_playlist(playlist, start_index)
+            self.app_state.playlist_paths = playlist
+            self.app_state.current_track_index = playlist.index(path)
+            self.app_state.current_track_path = path
             self.playbackStarted.emit(path) 
         except ValueError:
             print("File not found in playlist")
-
-
-    def open_file(self, index:int) -> None:
-        # if index not in self.current_dir -> return
-        assume_path = self.current_pos / self.current_dir[index]
-        
-        if assume_path.is_dir():
-            self.current_pos = assume_path
-            self.directoryChanged.emit()
-        elif assume_path.is_file():
-            playlist = self.create_playlist_from_dir()
-            # Находим индекс выбранного файла в плейлисте
-            try:
-                start_index = playlist.index(assume_path)
-                self.audio_player.set_playlist(playlist, start_index)
-            except ValueError:
-                print("File not found in playlist")
-
-
-    def next_song(self) -> None:
-        if self.audio_player:
-            self.audio_player.next_track()
-
-    
-    def prev_song(self) -> None:
-        if self.audio_player:
-            self.audio_player.prev_track()
 
 
     def back_previous_dir(self) -> None:
@@ -136,20 +113,15 @@ class FileBrowserModel(QObject):
     def print_config(self) -> None:
         print(self.config)
         
-
-    def create_playlist_from_dir(self) -> list[Path]:
-        current_dir = []
-        current_pos = self.app_state.current_library_path
-        for file in current_pos.iterdir():
-            if file.is_file() and file.suffix.lower() in self.app_state.supported_formats:
-                current_dir.append(file)
-        return current_dir
     
+    def create_playlist_from_dir(self) -> list[Path]:
+        files_with_meta = []
+        for file in self.app_state.current_library_path.iterdir():
+            if not self.is_supported(file):
+                continue
+            elif file.is_file:
+                meta = MetadataReader.get_metadata(file)
+                files_with_meta.append((file, meta.get('track', 0)))
+        files_with_meta.sort(key=lambda x: (x[1] if x[1] > 0 else 9999, x[0].name.lower()))
+        return [f[0] for f in files_with_meta]
 
-if __name__ == "__main__":
-    f = FileBrowserModel()
-    f.open_file(2)
-    while True:
-        inp = input("enter q to quit: ")
-        if inp.upper() == 'Q':
-            break

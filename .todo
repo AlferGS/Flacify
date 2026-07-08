@@ -10,6 +10,11 @@ folder_list_item.py
 song_list_item.py
 [x] 1. Заменить QLabel на BodyLabel для поодержки шрифтов
 
+app_state.py
+[x] 1. внедрить в audio_player_controller использование current_track_path из app_state
+[x] 2. внедрить в audio_player_controller использование playlist_paths из app_state
+[x] 3. убрать save_playlist_state()
+
 audio_player_controller.py
 [-] 1. Переделать логику работы с плейлистом. Реализовать обратный стек с forwardpop() 
     и избавиться от _current_track_index
@@ -18,6 +23,9 @@ audio_player_controller.py
 [ ] 2. Реализация доп очереди. Если есть stack(очередь) то проигрывать stack[0].
     После чего stack.pop(0) и так пока не кончится stack.
     Делать stack.pop(0) вне зависимости от переключения песен вперед или назад.
+[x] 3. убрать внутреннюю переменную _current_volume
+[x] 4. убрать функцию _restore_playlist_from_state
+[x] 5. просмотреть путь вызовов set_playlist (удален)
     
 Общее
 [x] 1. Спроектировать и создвать DataClass для основных данных из настроек.
@@ -26,7 +34,10 @@ audio_player_controller.py
 [x] 4. Реструктуризация проекта
 [x] HIGH! 5. Убрать зависимость между UI и бизнес логикой (AudioPlayerController)
 [x] HIGH! 6. Убрать зависимость между UI и бизнес логикой (File_Browser_Model)
-[ ] 7. Разобраться со связанностью audio_player_conroller и file_browser_model (прямой вызов из file_browser_model )
+[x] 7. Разобраться со связанностью audio_player_conroller и file_browser_model (прямой вызов из file_browser_model)
+
+GIT
+[ ] Разобраться с веткой fix_file_list_item
 
 пример обновленного config.json файла
 {
