@@ -24,7 +24,8 @@ class SongListItem(CardWidget):
         sanitized_artist = sanitize_metadata_text(artist)
         self.display_artist = sanitized_artist if sanitized_artist else "Unknown Artist"
         
-        self.setFixedHeight(56)  
+        self.setFixedHeight(56)
+        self.setMinimumWidth(100)
         self.setObjectName("SongListItem")
 
         # Main layout

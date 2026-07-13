@@ -2,11 +2,11 @@
 from pathlib import Path
 
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget
 
 from qfluentwidgets import ScrollArea
 
-from app.components import FolderListItem, SongListItem, PlayerBar
+from app.components import FolderListItem, SongListItem, PlayerBar, QueueWindow
 from app.core import MetadataReader
 from app.core.app_state import AppState
 
@@ -21,31 +21,59 @@ class HomeWindow(QWidget):
         self.setObjectName("HomeWindow") 
         self.setAutoFillBackground(True)
         self.app_state = app_state
+        self.queue_window = QueueWindow(self.app_state)
         self.__init_ui(app_state)
 
     def __init_ui(self, app_state:AppState) -> None:
-        # Main vertical box for ScrollArea and playerBar
+        # Main vertical box for main_horiz_layout and PlayerBar
         self.main_vert_layout = QVBoxLayout(self)
         self.main_vert_layout.setContentsMargins(0, 0, 0, 0)
         self.main_vert_layout.setSpacing(0)
+        # Main horizontal box for ScrollArea and QueueWindow
+        self.main_container = QWidget()
+        self.main_container.setContentsMargins(8, 8, 8, 8)
+        self.main_container.setStyleSheet("background: #000000; border: none;")
+
+        self.main_horiz_layout = QHBoxLayout()
+        self.main_horiz_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_horiz_layout.setSpacing(0)
+        self.main_container.setLayout(self.main_horiz_layout)
         # Scroll box for file list items
         self.scroll_area = ScrollArea()
         self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setViewportMargins(0, 0, 0, 0) # Убираем внутренние отступы viewport
         self.scroll_area.setStyleSheet("""
-        ScrollArea {
-            background: #111111;
-        }
+            QScrollArea {
+                background-color: #111111; /* Фон и радиус на самом контейнере */
+                border-radius: 10px;
+                border: none;
+            }
+            QScrollArea::viewport {
+                background-color: transparent; /* Прозрачный, чтобы не перекрывать радиус родителя */
+                border: none;
+            }
         """)
         
-        self.view_container = QWidget()
-        self.view_container.setStyleSheet("background: #111111; border: none;")
-
-        self.view_layout = QVBoxLayout(self.view_container)
+        self.scroll_container = QWidget()
+        self.scroll_container.setStyleSheet("background: transparent; border: none;")
+        
+        self.view_layout = QVBoxLayout(self.scroll_container)
         self.view_layout.setContentsMargins(16, 16, 16, 16)
         self.view_layout.setSpacing(8)
-        
-        self.scroll_area.setWidget(self.view_container)
-        self.main_vert_layout.addWidget(self.scroll_area)
+
+        self.queue_window.setFixedWidth(250)
+        # self.queue_window.setStyleSheet("""
+        #     background-color: #111111;
+        #     border-radius: 10px;
+        # """)
+
+        self.scroll_area.setWidget(self.scroll_container)
+
+        self.main_horiz_layout.addWidget(self.scroll_area, stretch=1)
+        self.main_horiz_layout.addSpacing(8)
+        self.main_horiz_layout.addWidget(self.queue_window, stretch=0)
+
+        self.main_vert_layout.addWidget(self.main_container)
 
         self.player_bar = PlayerBar(app_state)
         self.main_vert_layout.addWidget(self.player_bar)

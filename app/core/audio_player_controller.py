@@ -26,6 +26,7 @@ class AudioPlayerController(QObject):
     trackSliderChanged = pyqtSignal(int, int) # current_ms, total_ms
     sessionRestored = pyqtSignal(str, str, str, object) # title, artist, album, cover_data
     repeatModeChanged = pyqtSignal(RepeatMode)
+    updateShuffledPlaylist = pyqtSignal()
 
 
     def __init__(self, app_state: AppState = None, parent=None) -> None:
@@ -182,6 +183,16 @@ class AudioPlayerController(QObject):
             print(f"Error playing: {e}")
             self.next_track()
 
+    
+    def play_file(self, path: Path) -> None:
+        """Запускает воспроизведение указанного файла."""
+        if path in self.app_state.playlist_paths:
+            self.app_state.current_track_index = self.app_state.playlist_paths.index(path)
+            self.app_state.current_track_path = path
+            self.play_current_track()
+        else:
+            print(f"Track {path} not found in playlist")
+
 
     def pause_track(self):
         if not self.app_state.playlist_paths:
@@ -209,7 +220,6 @@ class AudioPlayerController(QObject):
 
     def toggle_repeat(self):
         self.is_repeated = self.is_repeated.next()
-        print(f"Repeat mode changed to: {self.is_repeated.name}")
         self.repeatModeChanged.emit(self.is_repeated)
 
 
@@ -242,7 +252,31 @@ class AudioPlayerController(QObject):
         full_playlist[self.app_state.current_track_index+1:] = tail_to_shuffle
 
         self.app_state.playlist_paths = full_playlist
-        print("\t new shuffled playlist:", *self.app_state.playlist_paths, "-----------", sep='\n')
+        self.updateShuffledPlaylist.emit()
+
+
+    def update_queue_order(self, new_order: list[Path]) -> None:
+        current_path = self.app_state.current_track_path
+        
+        # Если сейчас ничего не играет или путь пустой, просто выходим
+        if not current_path or not current_path.exists():
+            return
+            
+        try:
+            # Ищем индекс текущего трека в НОВОМ порядке
+            new_index = new_order.index(current_path)
+            
+            # Обновляем индекс в AppState
+            self.app_state.current_track_index = new_index
+            print(f"[AudioPlayer] Queue reordered. New current index: {new_index}")
+            
+            # Обновляем доступность кнопки Next (если трек стал последним)
+            has_next = new_index < len(new_order) - 1
+            self.shuffleButtonEnabled.emit(has_next or self.is_repeated == RepeatMode.ALBUM_LOOP)
+            
+        except ValueError:
+            # Этот блок сработает, если текущий трек каким-то образом исчез из нового списка
+            print("[AudioPlayer] Warning: Current track not found in new queue order.")
 
 
     def _get_duration_ms(self, file_path: Path) -> int:

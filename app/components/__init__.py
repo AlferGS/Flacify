@@ -4,6 +4,7 @@ from .song_list_item import SongListItem
 from .marquee_label import MarqueeLabel
 from .hover_slider import HoverSlider
 from .player_bar import PlayerBar
+from .queue_window import QueueWindow
 
 __all__ = [
     "FolderListItem",
@@ -11,4 +12,5 @@ __all__ = [
     "MarqueeLabel",
     "HoverSlider",
     "PlayerBar",
+    "QueueWindow"
 ]

@@ -34,7 +34,7 @@ class MainFluentWindow(FluentWindow):
 
     def __create_core_objects(self):
         self.app_state = AppState()
-        self.audio_player = AudioPlayerController(self.app_state, self)     # TODO: избавться от передачи плейлиста на этом уровне
+        self.audio_player = AudioPlayerController(self.app_state, self)
         self.file_browser = FileBrowserModel(self.app_state, self)
 
 
@@ -50,8 +50,11 @@ class MainFluentWindow(FluentWindow):
         # Signals AudioPlayerController -> PlayerBar
         self.audio_player.shuffleButtonEnabled.connect(self.home_window.player_bar._toggle_shuffle_button)
         self.audio_player.trackChanged.connect(self.home_window.player_bar._update_info_panel)
+        self.audio_player.trackChanged.connect(self.home_window.queue_window.on_track_changed)
         self.audio_player.trackSliderChanged.connect(self.home_window.player_bar._update_progress_slider)
         self.audio_player.repeatModeChanged.connect(self.home_window.player_bar._on_repeat_mode_changed)
+        self.audio_player.trackChanged.connect(self.home_window.queue_window.on_track_changed)
+        self.audio_player.updateShuffledPlaylist.connect(self.home_window.queue_window.update_queue)
         # Signals PlayerBar -> AudioPlayerController
         self.home_window.player_bar.shuffle_button.clicked.connect(self.audio_player.shuffle_playlist)
         self.home_window.player_bar.prev_button.clicked.connect(self.audio_player.prev_track)
@@ -61,22 +64,17 @@ class MainFluentWindow(FluentWindow):
         self.home_window.player_bar.audioSliderReleased.connect(self.audio_player.seek)
         self.home_window.player_bar.toggleMuteBtn.connect(self.audio_player.toggle_mute)
         self.home_window.player_bar.volumeSliderChanged.connect(self.audio_player.set_volume)
-        # TODO: ADD Repeat button connect
-
-        # Сохранение состояния при смене трека (в память, не в файл!)
-        # self.audio_player.trackChanged.connect(self._on_track_changed)  # TODO: переделать впервую очередь. вынести из класса
-        
-
         self.home_window.itemClicked.connect(self.file_browser.handle_item_click)
         self.home_window.backRequested.connect(self.file_browser.back_previous_dir)
         self.home_window.requestDirectory.connect(self.file_browser.load_directory)
+        self.home_window.queue_window.queue_reordered.connect(self.audio_player.update_queue_order)
+        self.home_window.queue_window.play_track_requested.connect(self.audio_player.play_file)
 
         self.file_browser.directoryLoaded.connect(self.home_window.onDirectoryLoaded)
         self.file_browser.directoryChanged.connect(self.home_window.requestDirectory)
         self.file_browser.playbackStarted.connect(self.audio_player.play_current_track)
         self.file_browser.nextTrack.connect(self.audio_player.next_track)
         self.file_browser.prevTrack.connect(self.audio_player.prev_track)
-
         self.home_window.requestDirectory.emit()
 
 
@@ -93,9 +91,7 @@ class MainFluentWindow(FluentWindow):
         Override closing window event.
         Save state in file.
         """
-        # if self.file_browser:
-        #     self.app_state.current_library_path = str(self.file_browser.current_pos)
-        
+
         self.app_state.save()
         super().closeEvent(event)
 
