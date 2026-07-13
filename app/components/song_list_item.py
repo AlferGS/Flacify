@@ -5,6 +5,8 @@ from PyQt5.QtGui import QColor, QPainter, QPainterPath, QBrush, QPixmap
 from qfluentwidgets import BodyLabel, CardWidget, Theme, FluentIcon as FIF
 
 from app.utils import sanitize_metadata_text
+from app.utils.pixmap_utils import blur_pixmap
+from .rounded_image_label import RoundedImageLabel
 
 
 class SongListItem(CardWidget):
@@ -33,18 +35,21 @@ class SongListItem(CardWidget):
         self.h_layout.setSpacing(12)
         self.h_layout.setContentsMargins(10, 8, 10, 8)
 
-        self.cover_label = QLabel()
+        self.cover_label = RoundedImageLabel(radius=4)
         self.cover_label.setFixedSize(40, 40)
         self.cover_label.setAlignment(Qt.AlignCenter)
-        self.cover_label.setStyleSheet("""
-            QLabel {
-                background: #222222;
-                border-radius: 4px;
-            }
-        """)
+        self.cover_label.setStyleSheet("background: #222222;")
+
+        self.play_icon_label = QLabel(self.cover_label)
+        self.play_icon_label.setFixedSize(40, 40)
+        self.play_icon_label.setAlignment(Qt.AlignCenter)
+        self.play_icon_label.setStyleSheet("background: transparent;")
+        self.play_icon_label.move(0, 0)
+        self.play_icon_label.hide()
 
         # Upload a cover or default icon
         self._original_pixmap = self.__load_cover_pixmap()
+        self._blurred_pixmap = None
         self.cover_label.setPixmap(self._original_pixmap)
 
         text_layout = QVBoxLayout()
@@ -97,14 +102,26 @@ class SongListItem(CardWidget):
     def enterEvent(self, event):
         """Enter on item event."""
         super().enterEvent(event)
-        play_pixmap = FIF.PLAY.icon(Theme.DARK).pixmap(24, 24)
-        self.cover_label.setPixmap(play_pixmap)
+
+        if self._blurred_pixmap is None:
+            self._blurred_pixmap = blur_pixmap(self._original_pixmap, radius=6)
+
+        if self._blurred_pixmap and not self._blurred_pixmap.isNull():
+            self.cover_label.setPixmap(self._blurred_pixmap)
+
+        play_pixmap = FIF.PLAY.icon(Theme.DARK).pixmap(20, 20)
+        self.play_icon_label.setPixmap(play_pixmap)
+        self.play_icon_label.show()
 
 
     def leaveEvent(self, event):
         """Leave the item event."""
         super().leaveEvent(event)
-        self.cover_label.setPixmap(self._original_pixmap)
+
+        self.play_icon_label.hide()
+
+        if self._original_pixmap and not self._original_pixmap.isNull():
+            self.cover_label.setPixmap(self._original_pixmap)
 
 
     def paintEvent(self, event):
