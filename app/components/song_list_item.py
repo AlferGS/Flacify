@@ -43,11 +43,10 @@ class SongListItem(CardWidget):
             }
         """)
 
-        # Загружаем обложку или дефолтную иконку
-        self._original_pixmap = self._load_cover_pixmap()
+        # Upload a cover or default icon
+        self._original_pixmap = self.__load_cover_pixmap()
         self.cover_label.setPixmap(self._original_pixmap)
 
-        # Text layout
         text_layout = QVBoxLayout()
         text_layout.setSpacing(2)
         
@@ -62,23 +61,21 @@ class SongListItem(CardWidget):
         text_layout.addWidget(self.title_label)
         text_layout.addWidget(self.artist_label)
 
-        # Duration
         self.dur_label = BodyLabel(self.song_dur)
         self.dur_label.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
         self.dur_label.setStyleSheet("color: #AAAAAA; background: transparent;")
 
-        # Add to layout
         self.h_layout.addWidget(self.cover_label)
         self.h_layout.addLayout(text_layout)
         self.h_layout.addStretch(1)
         self.h_layout.addWidget(self.dur_label)
 
-        self.clicked.connect(self._on_clicked)
+        self.clicked.connect(self.__on_clicked)
 
 
-    def _load_cover_pixmap(self) -> QPixmap:
+    def __load_cover_pixmap(self) -> QPixmap:
         """
-        Возвращает QPixmap: либо обложку альбома, либо дефолтную иконку ноты.
+        Returns a QPixmap containing either the album cover or the default note icon.
         """
         if self.cover_data:
             pixmap = QPixmap()
@@ -89,27 +86,29 @@ class SongListItem(CardWidget):
                     Qt.SmoothTransformation
                 )
         
-        # Fallback: рендерим FluentIcon в QPixmap
         return FIF.MUSIC.icon(Theme.DARK).pixmap(24, 24)
 
 
-    def _on_clicked(self):
+    def __on_clicked(self):
+        """On item click event. Emit itemClicked."""
         self.itemClicked.emit(self.file_name)
 
 
     def enterEvent(self, event):
+        """Enter on item event."""
         super().enterEvent(event)
         play_pixmap = FIF.PLAY.icon(Theme.DARK).pixmap(24, 24)
         self.cover_label.setPixmap(play_pixmap)
 
 
     def leaveEvent(self, event):
+        """Leave the item event."""
         super().leaveEvent(event)
         self.cover_label.setPixmap(self._original_pixmap)
 
 
     def paintEvent(self, event):
-        """Только отрисовка фона."""
+        """Override paint event."""
         super().paintEvent(event)
         
         painter = QPainter(self)

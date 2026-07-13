@@ -39,48 +39,57 @@ DEFAULT_CONFIG = {
 
 class AppState:
     """
-    Централизованное хранилище конфигурации и состояния приложения.
-    
-    Загрузка: Один раз при запуске (в MainFluentWindow).
-    Запись в файл: Только при явном вызове save() (кнопка Save или закрытие приложения).
+    Centralized storage of application configuration and state.
+
+    Loading: Once at startup (in MainFluentWindow).
+    Writing to file: Only when explicitly calling save() (Save button or closing the application).
     """
 
     def __init__(self, config_path: str | Path = "config.json"):
         self._config_path = Path(config_path)
         self._data: dict = {}
-        self._load()
+        self.__load_config_file()
 
 
-    def _load(self) -> None:
-        """Загружает конфиг из файла. Создаёт дефолты для отсутствующих ключей."""
+    def __load_config_file(self) -> None:
+        """Loads the configuration file. Creates defaults for missing keys."""
         if self._config_path.exists():
             try:
                 with open(self._config_path, 'r', encoding='utf-8') as f:
                     self._data = json.load(f)
-                print(f"[AppState] Конфиг загружен из {self._config_path}")
+                print(f"[AppState] Config loaded from {self._config_path}")
             except (json.JSONDecodeError, Exception) as e:
-                print(f"[AppState] Ошибка чтения {self._config_path}: {e}")
+                print(f"[AppState] Read error {self._config_path}: {e}")
                 self._data = {}
         else:
-            print(f"[AppState] Конфиг не найден, создаём дефолтный")
+            print(f"[AppState] Config not found, creating a default one")
             self._data = {}
 
-        # Рекурсивно дополняем отсутствующие ключи из DEFAULT_CONFIG
-        self._merge_defaults(self._data, DEFAULT_CONFIG)
+        # Recursively add missing keys from DEFAULT_CONFIG
+        self.__merge_defaults(self._data, DEFAULT_CONFIG)
 
 
-    def save(self) -> None:
+    def __merge_defaults(self, target: dict, defaults: dict) -> None:
+        """Recursively adds keys from defaults if they are not present in target."""
+        for key, value in defaults.items():
+            if key not in target:
+                target[key] = value
+            elif isinstance(value, dict) and isinstance(target.get(key), dict):
+                self.__merge_defaults(target[key], value)
+
+
+    def _save(self) -> None:
         """
-        Явная запись текущего состояния в файл.
-        Вызывается ТОЛЬКО при нажатии кнопки Save или закрытии приложения.
+        Explicitly writes the current state to a file.
+        Called ONLY when the Save button is clicked or the application is closed.
         """
         try:
             self._config_path.parent.mkdir(parents=True, exist_ok=True)
             with open(self._config_path, 'w', encoding='utf-8') as f:
                 json.dump(self._data, f, indent=2, ensure_ascii=False)
-            print(f"[AppState] Конфиг сохранён в {self._config_path}")
+            print(f"[AppState] The config is saved in {self._config_path}")
         except Exception as e:
-            print(f"[AppState] Ошибка сохранения: {e}")
+            print(f"[AppState] Saving error: {e}")
 
 
     def print_app_state(self):
@@ -103,16 +112,6 @@ class AppState:
         library = {self.library}
         ------------------
         """)
-
-
-    @staticmethod
-    def _merge_defaults(target: dict, defaults: dict) -> None:
-        """Рекурсивно добавляет ключи из defaults, если их нет в target."""
-        for key, value in defaults.items():
-            if key not in target:
-                target[key] = value
-            elif isinstance(value, dict) and isinstance(target.get(key), dict):
-                AppState._merge_defaults(target[key], value)
 
     # ==================== settings ====================
     
@@ -142,7 +141,7 @@ class AppState:
         return self._data["settings"]["ui"]
 
     def update_ui_config(self, updates: dict) -> None:
-        """Пакетное обновление UI настроек."""
+        """Batch update of UI settings."""
         self._data["settings"]["ui"].update(updates)
 
     # ==================== state ====================
@@ -188,14 +187,12 @@ class AppState:
 
     @property
     def playlist_paths(self) -> list[Path]:
-        """Возвращает список путей треков последнего плейлиста."""
+        """Returns a list of track paths of the last playlist.."""
         return [Path(p) for p in self._data["state"].get("playlist_paths", [])]
 
     @playlist_paths.setter
     def playlist_paths(self, paths: list[Path]) -> None:
-        # Сохраняем только строки для JSON
         self._data["state"]["playlist_paths"] = [str(p) for p in paths]
-        # Не сохраняем автоматически, чтобы не писать в файл при каждом чихе
 
     # ==================== library ====================
 

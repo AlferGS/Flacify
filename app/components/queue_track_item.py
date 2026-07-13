@@ -52,7 +52,7 @@ class QueueTrackItem(QWidget):
         self._blurred_pixmap = None
         
         meta = MetadataReader.get_metadata(track_path)
-        cover_pixmap = self._load_cover_pixmap(meta, track_path)
+        cover_pixmap = self.__load_cover_pixmap(meta, track_path)
         self.cover_label.setPixmap(cover_pixmap)
         self._original_pixmap = cover_pixmap
                 
@@ -77,6 +77,49 @@ class QueueTrackItem(QWidget):
         h_layout.addWidget(self.cover_label)
         h_layout.addLayout(text_layout, stretch=1) 
         
+    def __load_cover_pixmap(self, meta: dict, track_path: Path) -> QPixmap:
+        """Return QPixmap with size 40x40: album cover or FIF.MUSIC."""
+        target_pixmap = QPixmap(40, 40)
+        target_pixmap.fill(Qt.transparent)
+
+        if meta.get('cover_data'):
+            pixmap = QPixmap()
+            if pixmap.loadFromData(meta['cover_data']) and not pixmap.isNull():
+                scaled_cover = pixmap.scaled(40, 40, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+                painter = QPainter(target_pixmap)
+                painter.drawPixmap(0, 0, scaled_cover)
+                painter.end()
+                return target_pixmap
+        
+        icon_size = 24
+        icon_pixmap = FIF.MUSIC.icon(Theme.DARK).pixmap(icon_size, icon_size)
+        
+        if not icon_pixmap.isNull():
+            painter = QPainter(target_pixmap)
+            painter.setRenderHint(QPainter.Antialiasing)
+            painter.setRenderHint(QPainter.SmoothPixmapTransform)
+            
+            x = (40 - icon_size) // 2
+            y = (40 - icon_size) // 2
+            
+            painter.drawPixmap(x, y, icon_pixmap)
+            painter.end()
+            
+        return target_pixmap
+
+    def _get_blurred_pixmap(self) -> QPixmap:
+        """Return blured version of album cover (with cache)."""
+        if self._blurred_pixmap is None:
+            self._blurred_pixmap = blur_pixmap(self._original_pixmap, radius=6)
+        return self._blurred_pixmap
+
+    def _update_text_colors(self):
+        """Update text color depends on the state is_current."""
+        title_color = "#1DB954" if self.is_current else "#FFFFFF"
+        artist_color = "#1DB954" if self.is_current else "#AAAAAA"
+        self.title_label.setStyleSheet(f"color: {title_color}; font-weight: bold; background: transparent;")
+        self.artist_label.setStyleSheet(f"color: {artist_color}; font-size: 12px; background: transparent;")
+
     def paintEvent(self, event):
         """Custom background and frame rendering for the current track."""
         painter = QPainter(self)
@@ -154,46 +197,3 @@ class QueueTrackItem(QWidget):
         
         if self._original_pixmap and not self._original_pixmap.isNull():
             self.cover_label.setPixmap(self._original_pixmap)
-
-    def _get_blurred_pixmap(self) -> QPixmap:
-        """Return blured version of album cover (with cache)."""
-        if self._blurred_pixmap is None:
-            self._blurred_pixmap = blur_pixmap(self._original_pixmap, radius=6)
-        return self._blurred_pixmap
-
-    def _update_text_colors(self):
-        """Update text color depends on the state is_current."""
-        title_color = "#1DB954" if self.is_current else "#FFFFFF"
-        artist_color = "#1DB954" if self.is_current else "#AAAAAA"
-        self.title_label.setStyleSheet(f"color: {title_color}; font-weight: bold; background: transparent;")
-        self.artist_label.setStyleSheet(f"color: {artist_color}; font-size: 12px; background: transparent;")
-
-    def _load_cover_pixmap(self, meta: dict, track_path: Path) -> QPixmap:
-        """Return QPixmap with size 40x40: album cover or FIF.MUSIC."""
-        target_pixmap = QPixmap(40, 40)
-        target_pixmap.fill(Qt.transparent)
-
-        if meta.get('cover_data'):
-            pixmap = QPixmap()
-            if pixmap.loadFromData(meta['cover_data']) and not pixmap.isNull():
-                scaled_cover = pixmap.scaled(40, 40, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
-                painter = QPainter(target_pixmap)
-                painter.drawPixmap(0, 0, scaled_cover)
-                painter.end()
-                return target_pixmap
-        
-        icon_size = 24
-        icon_pixmap = FIF.MUSIC.icon(Theme.DARK).pixmap(icon_size, icon_size)
-        
-        if not icon_pixmap.isNull():
-            painter = QPainter(target_pixmap)
-            painter.setRenderHint(QPainter.Antialiasing)
-            painter.setRenderHint(QPainter.SmoothPixmapTransform)
-            
-            x = (40 - icon_size) // 2
-            y = (40 - icon_size) // 2
-            
-            painter.drawPixmap(x, y, icon_pixmap)
-            painter.end()
-            
-        return target_pixmap

@@ -1,52 +1,54 @@
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QFontMetrics, QPainter, QPalette
-from PyQt5.QtWidgets import QLabel, QStyleOption
+from PyQt5.QtWidgets import QStyleOption
 
 from qfluentwidgets import BodyLabel
 
 class MarqueeLabel(BodyLabel):
     def __init__(self, text="", parent=None):
+        """Initializes the label, configures scrolling parameters, 
+        and sets up the QTimer to drive the animation loop."""
+
         super().__init__(text)
         self._offset = 0.0
-        self._direction = -1  # -1 = едет влево, 1 = вправо
+        self._direction = -1        # -1 = goes left, 1 = goes right
         self._pause_counter = 0
-        self._pause_duration = 40  # Тиков паузы (~1.2 сек при 30мс)
-        self._step = 1.0  # Пикселей за тик
+        self._pause_duration = 40   # Pause ticks (~1.2 sec at 30 ms)
+        self._step = 1.0            # Pixels per tick
         
         self._timer = QTimer(self)
-        self._timer.timeout.connect(self._update_offset)
+        self._timer.timeout.connect(self.__update_offset)
         self._timer.setInterval(30)
-        
-    def setText(self, text):
-        super().setText(text)
-        self._check_animation_needed()
-        
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        self._check_animation_needed()
-        
-    def _check_animation_needed(self):
+       
+
+    def __check_animation_needed(self):
+        """Compares text width to label width and starts or stops
+        the scrolling animation timer accordingly."""
+
         if not self.text():
             self._timer.stop()
             self._offset = 0
             return
             
         metrics = QFontMetrics(self.font())
-        # horizontalAdvance доступен в Qt 5.11+, для старых версий width()
         text_width = metrics.horizontalAdvance(self.text()) if hasattr(metrics, 'horizontalAdvance') else metrics.width(self.text())
             
         if text_width > self.width():
             if not self._timer.isActive():
                 self._offset = 0.0
                 self._direction = -1
-                self._pause_counter = self._pause_duration # Пауза перед стартом
+                self._pause_counter = self._pause_duration # Pause before the start
                 self._timer.start()
         else:
             self._timer.stop()
             self._offset = 0.0
             self.update()
-            
-    def _update_offset(self):
+
+
+    def __update_offset(self):
+        """Updates the horizontal offset, handles direction reversal 
+        and pauses at boundaries, and triggers a repaint."""
+
         metrics = QFontMetrics(self.font())
         text_width = metrics.horizontalAdvance(self.text()) if hasattr(metrics, 'horizontalAdvance') else metrics.width(self.text())
         max_offset = text_width - self.width()
@@ -63,7 +65,6 @@ class MarqueeLabel(BodyLabel):
             
         self._offset += self._direction * self._step
         
-        # Логика Ping-Pong с паузами
         if self._direction == -1 and self._offset <= -max_offset:
             self._offset = -max_offset
             self._direction = 1
@@ -74,8 +75,25 @@ class MarqueeLabel(BodyLabel):
             self._pause_counter = self._pause_duration
             
         self.update()
+         
+
+    def _setText(self, text):
+        """Updates the displayed text and re-evaluates whether the marquee animation should be active."""
+
+        super().setText(text)
+        self.__check_animation_needed()
         
+
+    def resizeEvent(self, event):
+        """Handles widget resizing and re-checks animation requirements based on the new dimensions."""
+
+        super().resizeEvent(event)
+        self.__check_animation_needed()
+        
+
     def paintEvent(self, event):
+        """Handles widget resizing and re-checks animation requirements based on the new dimensions."""
+
         painter = QPainter(self)
         painter.setRenderHint(QPainter.TextAntialiasing)
         
@@ -83,16 +101,13 @@ class MarqueeLabel(BodyLabel):
         opt.initFrom(self)
         opt.text = self.text()
         
-        # Вычисляем ширину текста для расширения области отрисовки
         text_width = self.fontMetrics().horizontalAdvance(self.text()) if hasattr(self.fontMetrics(), 'horizontalAdvance') else self.fontMetrics().width(self.text())
         
-        # Создаем rect со смещением
         opt.rect = self.rect().translated(int(self._offset), 0)
         opt.rect.setWidth(max(self.width(), text_width) + 50)
         
         opt.displayAlignment = self.alignment() | Qt.AlignVCenter
         
-        # Используем style() для сохранения CSS стилей (цвета, шрифты)
         self.style().drawItemText(
             painter, 
             opt.rect, 
@@ -102,4 +117,3 @@ class MarqueeLabel(BodyLabel):
             opt.text, 
             QPalette.WindowText
         )
-

@@ -5,8 +5,7 @@ from PyQt5.QtGui import QColor, QPainter, QPainterPath, QBrush
 from qfluentwidgets import BodyLabel, CardWidget, FluentIcon as FIF, IconWidget
 
 class FolderListItem(CardWidget):
-    """ Class for elements in view layout
-    """
+    """Class for elements in view layout"""
     itemClicked = pyqtSignal(str)
     def __init__(self, folder_name: str, parent=None):
         super().__init__(parent)
@@ -35,15 +34,15 @@ class FolderListItem(CardWidget):
         self.h_layout.addWidget(self.label)
         self.h_layout.addStretch(1)
 
-        self.clicked.connect(self._on_clicked)
+        self.clicked.connect(self.__on_clicked)
 
     
-    def _on_clicked(self):
+    def __on_clicked(self):
         self.itemClicked.emit(self.folder_name)
 
 
     def paintEvent(self, event):
-        """ Переопределяем отрисовку, чтобы скрыть нативную рамку CardWidget. """
+        """Override the rendering to hide the native CardWidget frame."""
         super().paintEvent(event)
 
         painter = QPainter(self)

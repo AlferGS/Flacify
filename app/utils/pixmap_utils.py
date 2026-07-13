@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QGraphicsScene, QGraphicsPixmapItem, QGraphicsBlurEf
 
 
 def blur_pixmap(pixmap: QPixmap, radius: int = 12) -> QPixmap:
-    """Create blured copy QPixmap."""
+    """Create and return blured copy QPixmap."""
     if pixmap.isNull():
         return pixmap
     scene = QGraphicsScene()

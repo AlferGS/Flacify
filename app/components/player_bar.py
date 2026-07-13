@@ -53,6 +53,7 @@ class PlayerBar(SimpleCardWidget):
 
     @staticmethod
     def __format_time(ms: int) -> str:
+        """Format int value in ms to str 00:00"""
         if ms < 0: ms = 0
         seconds = ms // 1000
         minutes = seconds // 60
@@ -61,8 +62,7 @@ class PlayerBar(SimpleCardWidget):
 
 
     def __create_info_panel(self) -> QHBoxLayout:
-        """ Set parameters for info panel (album icon, song name, artist name) 
-        """
+        """Set parameters for info panel (album icon, song name, artist name)"""
         info_layout = QHBoxLayout()
 
         # Cover lable
@@ -88,34 +88,15 @@ class PlayerBar(SimpleCardWidget):
         return info_layout
     
 
-    def _update_info_panel(self, title:str, artist:str, album: str, cover_data: object) -> None:
-        self.song_title.setText(title)
-        self.artist_label.setText(f"{artist}")
-
-        if cover_data:
-            pixelmap = QPixmap()
-            if pixelmap.loadFromData(cover_data) and not pixelmap.isNull():
-                scaled_pixmap = pixelmap.scaled(
-                    self.cover.size(), 
-                    Qt.KeepAspectRatioByExpanding, 
-                    Qt.SmoothTransformation
-                )
-                self.cover.setPixmap(scaled_pixmap)
-                self.cover.setText("")
-            else:
-                self._set_default_cover()
-        else:
-            self._set_default_cover()
-
-
-    def _set_default_cover(self):
+    def __set_default_cover(self):
+        """Set 'No Cover' in self.cover."""
         self.cover.clear()
         self.cover.setText("No Cover")
         self.cover.setStyleSheet("color: #555; background: #111; border-radius: 4px;")
 
 
     def __create_control_panel(self) -> QVBoxLayout:
-        """ Set parameters for control panel (next/prev song button, play/stop button, song slider) """
+        """Set parameters for control panel (next/prev song button, play/stop button, song slider)"""
         control_layout = QVBoxLayout()
         btns_layout = QHBoxLayout()
 
@@ -138,7 +119,7 @@ class PlayerBar(SimpleCardWidget):
                 background-color: #169c46;
             }
         """)
-        self.play_button.clicked.connect(self._on_play_clicked)
+        self.play_button.clicked.connect(self.__on_play_clicked)
         self.next_button = TransparentToolButton(FIF.CARE_RIGHT_SOLID)
         self.next_button.setFixedSize(30, 30)
         self.repeat_button = TransparentToolButton(FIF.ROTATE)
@@ -199,9 +180,7 @@ class PlayerBar(SimpleCardWidget):
 
 
     def __on_slider_value_changed(self, value: int):
-        """
-        Update value for self.current_track_time
-        """
+        """Update value for self.current_track_time."""
         time_str = self.__format_time(value)
         self.current_track_time.setText(time_str)
 
@@ -219,7 +198,99 @@ class PlayerBar(SimpleCardWidget):
             self.audioSliderReleased.emit(position_ms)
 
 
+    def __create_volume_panel(self) -> QHBoxLayout:
+        """ Set parameters for volume panel (mute button, volume slider) """
+        vol_layout = QHBoxLayout()
+        
+        self.vol_button = TransparentToolButton(FIF.VOLUME)
+        self.vol_button.clicked.connect(self.__vol_button_clicked)
+        
+        self.vol_slider = HoverSlider(Qt.Horizontal)
+        self.vol_slider.setMinimumWidth(65)
+        self.vol_slider.setMaximumWidth(85)
+        self.vol_slider.setValue(int(self.app_state.volume*100))
+        self.vol_slider.valueChanged.connect(self.__on_volume_changed)
+        
+        vol_layout.addWidget(self.vol_button)
+        vol_layout.addWidget(self.vol_slider)
+        vol_layout.setAlignment(Qt.AlignRight)
+        return vol_layout
+
+
+    def __vol_button_clicked(self):
+        """Mute button clicked event.
+        Change is_muted state. Sync volume with slider on ui.
+        """
+        self._is_muted = not self._is_muted
+        self.__sync_volume_ui(self._is_muted)
+        self.toggleMuteBtn.emit()
+
+
+    def __sync_volume_ui(self, is_muted: bool):
+        """Update volume slider value in ui."""
+        self.vol_slider.blockSignals(True)
+        try:
+            if is_muted:
+                self.vol_button.setIcon(FIF.MUTE)
+                self.vol_slider.setValue(0)
+            else:
+                self.vol_button.setIcon(FIF.VOLUME)
+                self.vol_slider.setValue(int(self.app_state.volume * 100))
+        finally:
+            self.vol_slider.blockSignals(False)
+
+
+    def __on_volume_changed(self, volume: int):
+        """Called when vol_slider moved."""
+        vol_float = float(volume / 100.0)
+        self.volumeSliderChanged.emit(vol_float)
+        
+        if volume == 0:
+            self.vol_button.setIcon(FIF.MUTE)
+        else:
+            self.vol_button.setIcon(FIF.VOLUME)
+
+
+    def __on_play_clicked(self):
+        self.togglePlayBtn.emit()
+
+
+    def _toggle_shuffle_button(self, flag: bool) -> None:
+        self.shuffle_button.setEnabled(flag)
+
+
+    def _on_playback_state_changed(self, is_playing: bool):
+        """
+        A slot called by the controller when the Play/Pause state changes.
+        Updates the button icon.
+        """
+        if is_playing:
+            self.play_button.setIcon(FIF.PAUSE)
+        else:
+            self.play_button.setIcon(FIF.PLAY)
+
+
+    def _update_progress_slider(self, current_ms: int, total_ms: int):
+        """Update song progress slider value in ui."""
+        self._total_duration_ms = total_ms
+        self.song_duration.setText(self.__format_time(total_ms))
+        
+        if self._is_slider_pressed:
+            return
+        
+        self.current_track_time.setText(self.__format_time(current_ms))
+        
+        self.player_slider.blockSignals(True)
+        try:
+            if total_ms > 0:
+                self.player_slider.setRange(0, total_ms)
+                self.player_slider.setValue(current_ms)
+        finally:
+            self.player_slider.blockSignals(False)
+
+
     def _on_repeat_mode_changed(self, mode: RepeatMode) -> None:
+        """Updates the state of the repeat button based on the state."""
         if mode == RepeatMode.OFF:
             self.repeat_indicator.hide()
             self.repeat_button.setToolTip("Loop: Off")
@@ -251,97 +322,29 @@ class PlayerBar(SimpleCardWidget):
             self.repeat_button.setToolTip("Loop: Song")
 
 
-    def __create_volume_panel(self) -> QHBoxLayout:
-        """ Set parameters for volume panel (mute button, volume slider) """
-        vol_layout = QHBoxLayout()
-        
-        self.vol_button = TransparentToolButton(FIF.VOLUME)
-        self.vol_button.clicked.connect(self.__vol_button_clicked)
-        
-        # TODO: Add min size for slider. 
-        # TODO: Add change style on hover
-        self.vol_slider = HoverSlider(Qt.Horizontal)
-        self.vol_slider.setMinimumWidth(65)
-        self.vol_slider.setMaximumWidth(85)
-        self.vol_slider.setValue(int(self.app_state.volume*100))
-        self.vol_slider.valueChanged.connect(self.__on_volume_changed)
-        
-        vol_layout.addWidget(self.vol_button)
-        vol_layout.addWidget(self.vol_slider)
-        vol_layout.setAlignment(Qt.AlignRight)
-        return vol_layout
+    def _update_info_panel(self, title:str, artist:str, album: str, cover_data: object) -> None:
+        """Update song title, artist label and album cover"""
+        self.song_title._setText(title)
+        self.artist_label._setText(f"{artist}")
 
-
-    def __vol_button_clicked(self):
-        self._is_muted = not self._is_muted
-        self.__sync_volume_ui(self._is_muted)
-        self.toggleMuteBtn.emit()
-
-
-    def __sync_volume_ui(self, is_muted: bool):
-        """Used when vol_button clicked."""
-        self.vol_slider.blockSignals(True)
-        try:
-            if is_muted:
-                self.vol_button.setIcon(FIF.MUTE)
-                self.vol_slider.setValue(0)
+        if cover_data:
+            pixelmap = QPixmap()
+            if pixelmap.loadFromData(cover_data) and not pixelmap.isNull():
+                scaled_pixmap = pixelmap.scaled(
+                    self.cover.size(), 
+                    Qt.KeepAspectRatioByExpanding, 
+                    Qt.SmoothTransformation
+                )
+                self.cover.setPixmap(scaled_pixmap)
+                self.cover.setText("")
             else:
-                self.vol_button.setIcon(FIF.VOLUME)
-                self.vol_slider.setValue(int(self.app_state.volume * 100))
-        finally:
-            self.vol_slider.blockSignals(False)
-
-
-    def _update_progress_slider(self, current_ms: int, total_ms: int):
-        self._total_duration_ms = total_ms
-        self.song_duration.setText(self.__format_time(total_ms))
-        
-        if self._is_slider_pressed:
-            return
-        
-        self.current_track_time.setText(self.__format_time(current_ms))
-        
-        self.player_slider.blockSignals(True)
-        try:
-            if total_ms > 0:
-                self.player_slider.setRange(0, total_ms)
-                self.player_slider.setValue(current_ms)
-        finally:
-            self.player_slider.blockSignals(False)
-
-
-    def __on_volume_changed(self, volume: int):
-        """Called when vol_slider moved."""
-        vol_float = float(volume / 100.0)
-        self.volumeSliderChanged.emit(vol_float)
-        
-        if volume == 0:
-            self.vol_button.setIcon(FIF.MUTE)
+                self.__set_default_cover()
         else:
-            self.vol_button.setIcon(FIF.VOLUME)
-
-
-    def _toggle_shuffle_button(self, flag: bool) -> None:
-        self.shuffle_button.setEnabled(flag)
-
-
-    def _on_playback_state_changed(self, is_playing: bool):
-        """
-        Слот, вызываемый контроллером при изменении состояния Play/Pause.
-        Обновляет иконку кнопки.
-        """
-        if is_playing:
-            self.play_button.setIcon(FIF.PAUSE)
-        else:
-            self.play_button.setIcon(FIF.PLAY)
-
-
-    def _on_play_clicked(self):
-        self.togglePlayBtn.emit()
+            self.__set_default_cover()
 
 
     def paintEvent(self, event):
-        """ Override paintEvent to forced painting black background """
+        """Override paintEvent to forced painting black background"""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         painter.fillRect(self.rect(), QColor("#000000"))

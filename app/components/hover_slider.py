@@ -4,7 +4,7 @@ class HoverSlider(QSlider):
     def __init__(self, orientation, parent=None):
         super().__init__(orientation, parent)
         
-        # Стили
+        # Styles
         self.style_default = """
             QSlider::groove:horizontal { 
                 background: #333; 
@@ -42,7 +42,6 @@ class HoverSlider(QSlider):
                 border-radius: 5px; 
             }
         """
-        
         self.setStyleSheet(self.style_default)
         
 
@@ -50,7 +49,7 @@ class HoverSlider(QSlider):
         self.setStyleSheet(self.style_hover)
         super().enterEvent(event)
 
+
     def leaveEvent(self, event):
         self.setStyleSheet(self.style_default)
         super().leaveEvent(event)
-

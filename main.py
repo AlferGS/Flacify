@@ -3,7 +3,7 @@ import sys
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QApplication
 
-from app.main_window import MainFluentWindow
+from app.windows import MainFluentWindow
 
 def main(*args,**kwargs):
     print('__main__: start application')

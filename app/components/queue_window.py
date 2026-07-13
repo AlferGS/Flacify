@@ -13,7 +13,7 @@ from .queue_list_container import QueueListContainer
 
 class QueueWindow(QWidget):
     """Window for queue.
-    Сontains current track info and queue list.
+    Contains current track info and queue list.
     """
     queue_reordered = pyqtSignal(list)
     play_track_requested = pyqtSignal(Path)
@@ -78,23 +78,24 @@ class QueueWindow(QWidget):
         """)
         
         self.queue_list = QueueListContainer()
-        self.queue_list.order_changed.connect(self._on_order_changed)
-        self.queue_list.track_double_clicked.connect(self._on_track_double_clicked)
+        self.queue_list.order_changed.connect(self.__on_order_changed)
+        self.queue_list.track_double_clicked.connect(self.__on_track_double_clicked)
         
         self.queue_scroll.setWidget(self.queue_list)
         self.main_layout.addWidget(self.queue_scroll, stretch=1)
         
         # Init date
-        self.update_current_track()
-        self.update_queue()
-        
-    def update_current_track(self):
+        self.__update_current_track()
+        self._update_queue()
+
+
+    def __update_current_track(self):
         """Update current track info."""
         current_path = self.app_state.current_track_path
         if current_path and current_path.exists():
             meta = MetadataReader.get_metadata(current_path)
-            self.title_label.setText(meta.get('title', current_path.stem))
-            self.artist_label.setText(meta.get('artist', 'Unknown Artist'))
+            self.title_label._setText(meta.get('title', current_path.stem))
+            self.artist_label._setText(meta.get('artist', 'Unknown Artist'))
             
             if meta.get('cover_data'):
                 pixmap = QPixmap()
@@ -105,44 +106,22 @@ class QueueWindow(QWidget):
             else:
                 self.cover_label.clear()
         else:
-            self.title_label.setText("No track selected")
-            self.artist_label.setText("Unknown Artist")
+            self.title_label._setText("No track selected")
+            self.artist_label._setText("Unknown Artist")
             self.cover_label.clear()
-            
-    def update_queue(self):
-        """Update queue list."""
-        tracks = self.app_state.playlist_paths
-        current_track = self.app_state.current_track_path
-        self.queue_list.set_tracks(tracks, current_track)
+
         
-    def _on_order_changed(self, new_order: list[Path]):
+    def __on_order_changed(self, new_order: list[Path]):
         """Update AppState playlist after changing queue."""
         self.app_state.playlist_paths = new_order
         self.queue_reordered.emit(new_order)
-        
-    def on_track_changed(self, title: str, artist: str, album: str, cover_data: object):
-        """Update queue window data after changing track from player.
-        Change info about current track. Get actual data from app_state.
-        """
-        self.title_label.setText(title)
-        self.artist_label.setText(artist)
-        
-        if cover_data:
-            pixmap = QPixmap()
-            if pixmap.loadFromData(cover_data) and not pixmap.isNull():
-                self.cover_label.setPixmap(pixmap)
-            else:
-                self._set_no_cover_pixmap()
-        else:
-            self._set_no_cover_pixmap()
-        
-        self.queue_list._update_current_highlight(self.app_state.current_track_path)
-        self.update_queue()
     
-    def _on_track_double_clicked(self, track_path: Path):
+
+    def __on_track_double_clicked(self, track_path: Path):
         """Handling double click on a track in the queue to play track.
         Emit play_track signal."""
         self.play_track_requested.emit(track_path)
+
 
     def _set_no_cover_pixmap(self):
         """Create empty pixmap with text 'No Cover' and set it in label."""
@@ -166,3 +145,31 @@ class QueueWindow(QWidget):
         painter.end()
         
         self.cover_label.setPixmap(pixmap)
+
+
+    def _update_queue(self):
+        """Update queue list."""
+        tracks = self.app_state.playlist_paths
+        current_track = self.app_state.current_track_path
+        self.queue_list._set_tracks(tracks, current_track)
+        
+        
+    def _on_track_changed(self, title: str, artist: str, album: str, cover_data: object):
+        """Update queue window data after changing track from player.
+        Change info about current track. Get actual data from app_state.
+        """
+        self.title_label._setText(title)
+        self.artist_label._setText(artist)
+        
+        if cover_data:
+            pixmap = QPixmap()
+            if pixmap.loadFromData(cover_data) and not pixmap.isNull():
+                self.cover_label.setPixmap(pixmap)
+            else:
+                self._set_no_cover_pixmap()
+        else:
+            self._set_no_cover_pixmap()
+        
+        self.queue_list._update_current_highlight(self.app_state.current_track_path)
+        self._update_queue()
+    

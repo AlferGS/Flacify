@@ -4,12 +4,12 @@ _SUSPICIOUS_CHARS = frozenset('ÃÂÄÖÜÝÞßåëïîáæÿøñýþðçêôù�
 
 def sanitize_metadata_text(text: str) -> str | None:
     """
-    Проверяет текст на наличие mojibake (кракозябр).
-    
-    Возвращает:
-    - Исправленный текст, если удалось раскодировать
-    - Исходный текст, если он читаемый
-    - None, если текст содержит подозрительные символы
+    Checks text for mojibake (or gibberish).
+
+    Returns:
+    - The corrected text, if decoded successfully
+    - The original text, if readable
+    - None, if the text contains suspicious characters
     """
     if not text or not text.strip():
         return None

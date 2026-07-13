@@ -1,4 +1,4 @@
-#main_window/home_window.py
+#windows/home_window.py
 from pathlib import Path
 
 from PyQt5.QtCore import pyqtSignal
@@ -10,19 +10,22 @@ from app.components import FolderListItem, SongListItem, PlayerBar, QueueWindow
 from app.core import MetadataReader
 from app.core.app_state import AppState
 
-# Home application page
 class HomeWindow(QWidget):
+    """Home application page"""
     itemClicked = pyqtSignal(Path)
     backRequested = pyqtSignal()
     requestDirectory = pyqtSignal()
 
     def __init__(self, app_state: AppState, parent=None):
+        """Init event.
+        Set HomeWindow default settings and init ui.
+        """
         super().__init__(parent)
         self.setObjectName("HomeWindow") 
         self.setAutoFillBackground(True)
         self.app_state = app_state
-        self.queue_window = QueueWindow(self.app_state)
         self.__init_ui(app_state)
+
 
     def __init_ui(self, app_state:AppState) -> None:
         # Main vertical box for main_horiz_layout and PlayerBar
@@ -41,15 +44,15 @@ class HomeWindow(QWidget):
         # Scroll box for file list items
         self.scroll_area = ScrollArea()
         self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setViewportMargins(0, 0, 0, 0) # Убираем внутренние отступы viewport
+        self.scroll_area.setViewportMargins(0, 0, 0, 0) 
         self.scroll_area.setStyleSheet("""
             QScrollArea {
-                background-color: #111111; /* Фон и радиус на самом контейнере */
+                background-color: #111111;
                 border-radius: 10px;
                 border: none;
             }
             QScrollArea::viewport {
-                background-color: transparent; /* Прозрачный, чтобы не перекрывать радиус родителя */
+                background-color: transparent;
                 border: none;
             }
         """)
@@ -61,11 +64,8 @@ class HomeWindow(QWidget):
         self.view_layout.setContentsMargins(16, 16, 16, 16)
         self.view_layout.setSpacing(8)
 
+        self.queue_window = QueueWindow(self.app_state)
         self.queue_window.setFixedWidth(250)
-        # self.queue_window.setStyleSheet("""
-        #     background-color: #111111;
-        #     border-radius: 10px;
-        # """)
 
         self.scroll_area.setWidget(self.scroll_container)
 
@@ -79,32 +79,28 @@ class HomeWindow(QWidget):
         self.main_vert_layout.addWidget(self.player_bar)
 
 
-    def onDirectoryLoaded(self, items: list[Path]):
-        """Слот для получения списка файлов от FileBrowserModel"""
-        self._render_items(items)
-
-    def _render_items(self, items: list[Path]):
-        # Очистка текущего layout
+    def __render_items(self, items: list[Path]):
+        """Clear current layout and render new files/folders.
+        Connect items to itemClicked signal.
+        """
         while self.view_layout.count():
             item = self.view_layout.takeAt(0)
             widget = item.widget()
             if widget:
                 widget.deleteLater()
 
-        # Кнопка "Назад" [..], если мы не в корневой папке
         if self.app_state.current_library_path != self.app_state.root_path:
             prev_item = FolderListItem("[..]")
             prev_item.itemClicked.connect(self.backRequested.emit)
             self.view_layout.addWidget(prev_item)
 
-        # Рендер файлов и папок
         for full_path in items:
             if not full_path.exists():
                 continue
             
             if full_path.is_dir():
                 list_item = FolderListItem(full_path.name)
-            else:
+            else: # if file, get meta data
                 meta = MetadataReader.get_metadata(full_path)
                 list_item = SongListItem(
                     file_name=full_path.name,
@@ -114,8 +110,12 @@ class HomeWindow(QWidget):
                     cover_data=meta.get('cover_data')
                 )
             
-            # Эмитим сигнал с путем при клике
             list_item.itemClicked.connect(lambda checked, p=full_path: self.itemClicked.emit(p))
             self.view_layout.addWidget(list_item)
 
         self.view_layout.addStretch(1)
+
+
+    def _onDirectoryLoaded(self, items: list[Path]):
+        """Render new item list after changing directory in FileBrowserModel."""
+        self.__render_items(items)
