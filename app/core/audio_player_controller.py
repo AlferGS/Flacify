@@ -3,6 +3,7 @@ import os
 import time
 from pathlib import Path
 from random import shuffle
+from mutagen import File
 
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "HIDE"
 
@@ -49,7 +50,7 @@ class AudioPlayerController(QObject):
 
         self._event_timer = QTimer(self)
         self._event_timer.timeout.connect(self.update)
-        self._event_timer.start(100)
+        self._event_timer.start(250)
 
         # Restore volume and playlist from AppState
         if self.app_state and self.app_state.playlist_paths:
@@ -67,8 +68,7 @@ class AudioPlayerController(QObject):
     def __get_duration_ms(self, file_path: Path) -> int:
         """ Get track duration in ms from mutagen."""
         try:
-            import mutagen
-            audio = mutagen.File(file_path)
+            audio = File(file_path)
             if audio and audio.info:
                 return int(audio.info.length * 1000)
         except Exception:
@@ -194,6 +194,15 @@ class AudioPlayerController(QObject):
             self._play_current_track()
 
 
+    def _get_playlist_index(self, path: Path) -> int | None:
+        """Return the index of a path in the current playlist, if present."""
+        playlist = self.app_state.playlist_paths
+        for index, candidate in enumerate(playlist):
+            if candidate == path:
+                return index
+        return None
+
+
     def _play_current_track(self) -> None:
         """ Start play track.
         Use current_track_index to path from app_state.playlist_paths[]
@@ -204,31 +213,38 @@ class AudioPlayerController(QObject):
         try:
             mixer.music.load(str(self.app_state.current_track_path))
             mixer.music.play()
-            
-            self.is_playing = True
-            self.is_paused = False
-            
-            self.playbackStateChanged.emit(True)
-            
-            meta = MetadataReader.get_metadata(self.app_state.current_track_path)
-            self.trackChanged.emit(meta["title"], meta["artist"], meta["album"], meta["cover_data"])
-            
-            self._total_duration_ms = self.__get_duration_ms(self.app_state.current_track_path)
-            self._play_start_time = time.time()
-            self._play_start_position_ms = 0
-            
-            has_next = self.app_state.current_track_index < len(self.app_state.playlist_paths) - 1
-            self.shuffleButtonEnabled.emit(has_next or self.is_repeated == RepeatMode.ALBUM_LOOP)
-            
         except Exception as e:
-            print(f"Error playing: {e}")
-            self._next_track()
+            print(f"[AudioPlayer] Error playing track {self.app_state.current_track_path}: {e}")
+            self.is_playing = False
+            self.is_paused = False
+            self._play_start_time = 0.0
+            self._play_start_position_ms = 0
+            self._pause_position_ms = 0
+            self._total_duration_ms = 0
+            self.playbackStateChanged.emit(False)
+            return
+
+        self.is_playing = True
+        self.is_paused = False
+
+        self.playbackStateChanged.emit(True)
+
+        meta = MetadataReader.get_metadata(self.app_state.current_track_path)
+        self.trackChanged.emit(meta["title"], meta["artist"], meta["album"], meta["cover_data"])
+
+        self._total_duration_ms = self.__get_duration_ms(self.app_state.current_track_path)
+        self._play_start_time = time.time()
+        self._play_start_position_ms = 0
+
+        has_next = self.app_state.current_track_index < len(self.app_state.playlist_paths) - 1
+        self.shuffleButtonEnabled.emit(has_next or self.is_repeated == RepeatMode.ALBUM_LOOP)
 
     
     def _play_file(self, path: Path) -> None:
         """Starts playback of the specified file."""
-        if path in self.app_state.playlist_paths:
-            self.app_state.current_track_index = self.app_state.playlist_paths.index(path)
+        track_index = self._get_playlist_index(path)
+        if track_index is not None:
+            self.app_state.current_track_index = track_index
             self.app_state.current_track_path = path
             self._play_current_track()
         else:

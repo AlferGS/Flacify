@@ -91,7 +91,7 @@ class SettingsWindow(QWidget):
         """Path Button clicked event.
         Open QFileDialog for selecting root_path.
         """
-        start_dir = self.app_state.root_path or ""
+        start_dir = str(self.app_state.root_path) or ""
         root_path = QFileDialog.getExistingDirectory(self, 'Select Audio Library', start_dir)
         if root_path:
             self.path_lineedit.setText(root_path)
