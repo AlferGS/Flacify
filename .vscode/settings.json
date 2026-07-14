@@ -1,0 +1,11 @@
+{
+    "python.analysis.autoImportCompletions": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit"
+    },
+    "isort.args": [
+        "--profile", "black",
+        "--force-single-line-imports",
+        "--relative-imports-order", "closest"
+    ]
+}
