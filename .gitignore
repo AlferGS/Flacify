@@ -1,6 +1,12 @@
 venv/
 .venv/
+build/
+dist/
 app/__pycache__/
+app/components/__pycache__/
+app/core/__pycache__/
+app/utils/__pycache__/
+app/windows/__pycache__/
 __pycache__/
 *.pyc
 music/
