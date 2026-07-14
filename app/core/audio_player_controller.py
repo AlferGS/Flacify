@@ -4,8 +4,6 @@ import time
 from pathlib import Path
 from random import shuffle
 
-from pygame.gfxdraw import filled_circle
-
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "HIDE"
 
 from pygame import USEREVENT, display, event as pg_event, mixer

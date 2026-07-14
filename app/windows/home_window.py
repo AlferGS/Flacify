@@ -7,7 +7,6 @@ from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget
 from qfluentwidgets import ScrollArea
 
 from app.components import FolderListItem, SongListItem, PlayerBar, QueueWindow
-from app.core import MetadataReader
 from app.core.app_state import AppState
 
 class HomeWindow(QWidget):
@@ -79,10 +78,8 @@ class HomeWindow(QWidget):
         self.main_vert_layout.addWidget(self.player_bar)
 
 
-    def __render_items(self, items: list[Path]):
-        """Clear current layout and render new files/folders.
-        Connect items to itemClicked signal.
-        """
+    def __render_items(self, payload: dict):
+        """Clear current layout and render new files/folders from a scan payload."""
         while self.view_layout.count():
             item = self.view_layout.takeAt(0)
             widget = item.widget()
@@ -94,28 +91,31 @@ class HomeWindow(QWidget):
             prev_item.itemClicked.connect(self.backRequested.emit)
             self.view_layout.addWidget(prev_item)
 
+        items = payload.get("items", [])
+        metadata_map = payload.get("metadata", {})
+
         for full_path in items:
             if not full_path.exists():
                 continue
-            
+
             if full_path.is_dir():
                 list_item = FolderListItem(full_path.name)
-            else: # if file, get meta data
-                meta = MetadataReader.get_metadata(full_path)
+            else:
+                meta = metadata_map.get(full_path, {})
                 list_item = SongListItem(
                     file_name=full_path.name,
-                    song_name=meta.get('title', full_path.stem),
-                    artist=meta.get('artist', 'Unknown Artist'),
-                    song_dur=meta.get('song_dur', '00:00'),
-                    cover_data=meta.get('cover_data')
+                    song_name=meta.get("title", full_path.stem),
+                    artist=meta.get("artist", "Unknown Artist"),
+                    song_dur=meta.get("song_dur", "00:00"),
+                    cover_data=meta.get("cover_data")
                 )
-            
+
             list_item.itemClicked.connect(lambda checked, p=full_path: self.itemClicked.emit(p))
             self.view_layout.addWidget(list_item)
 
         self.view_layout.addStretch(1)
 
 
-    def _onDirectoryLoaded(self, items: list[Path]):
-        """Render new item list after changing directory in FileBrowserModel."""
-        self.__render_items(items)
+    def _onDirectoryLoaded(self, payload: dict):
+        """Render the new item list after a directory scan completes."""
+        self.__render_items(payload)
