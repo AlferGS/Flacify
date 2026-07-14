@@ -28,6 +28,7 @@ a = Analysis(
     binaries=conda_binaries,
     datas=qfw_datas + [
         ('config.json', '.'),
+        ('app/assets/icon.ico', 'app/assets'),
     ],
     hiddenimports=[
         'mutagen', 'mutagen.mp3', 'mutagen.flac', 'mutagen.oggvorbis', 

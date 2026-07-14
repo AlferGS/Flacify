@@ -3,7 +3,7 @@ import os
 os.environ['QFLUENT_WIDGETS_PRO_TIPS'] = '0'
 
 from PyQt5.QtWidgets import QApplication
-from PyQt5.QtGui import QCloseEvent
+from PyQt5.QtGui import QCloseEvent, QIcon
 from qfluentwidgets import FluentIcon as FIF, FluentWindow, NavigationItemPosition, Theme, setTheme
 
 from .home_window import HomeWindow
@@ -20,6 +20,15 @@ class MainFluentWindow(FluentWindow):
         Try to restore last session.
         """
         super().__init__(parent)
+        
+        icon_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'icon.ico')
+        icon_path = os.path.abspath(icon_path)
+        
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+        else:
+            print(f"[Warning] Icon not found: {icon_path}")
+            
         setTheme(Theme.DARK)
         self.__set_min_resolution()
         self.setStyleSheet('''
