@@ -1,9 +1,60 @@
-# components/queue_list_container.py
+#components/queue_list_container.py
 from pathlib import Path
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSizePolicy
 
 from .queue_track_item import QueueTrackItem
+
+class BaseTrackListContainer(QWidget):
+    """
+    Base track list container with drag-and-drop reordering.
+    Subclasses: QueueListContainer, PlaylistTrackContainer.
+    """
+
+    order_changed = pyqtSignal(int, int)  # (from_index, to_index)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._items: list = []
+        self._layout = QVBoxLayout(self)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setSpacing(0)
+
+        self._drag_active = False
+        self._drag_item = None
+        self._drag_start_y = 0
+        self._drag_current_y = 0
+        self._drag_threshold = 5
+
+    def set_items(self, items: list) -> None:
+        """Set new elements list"""
+        self._clear_layout()
+        self._items = items
+        for item in items:
+            self._layout.addWidget(item)
+        self._layout.addStretch()
+
+    def rebuild(self) -> None:
+        """Rebuild widgets order in layout by list _items."""
+        self._clear_layout()
+        for item in self._items:
+            self._layout.addWidget(item)
+        self._layout.addStretch()
+
+    def get_track_at_position(self, y: int):
+        """Find element by Y-coord."""
+        for item in self._items:
+            geo = item.geometry()
+            if geo.top() <= y <= geo.bottom():
+                return item
+        return None
+
+    def _clear_layout(self) -> None:
+        while self._layout.count():
+            child = self._layout.takeAt(0)
+            if child.widget():
+                child.widget().setParent(None)
+
 
 class QueueListContainer(QWidget):
     """Container for track list. Manages their order."""

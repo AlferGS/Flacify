@@ -14,6 +14,7 @@ class HomeWindow(QWidget):
     itemClicked = pyqtSignal(Path)
     backRequested = pyqtSignal()
     requestDirectory = pyqtSignal()
+    add_to_playlist_requested = pyqtSignal(Path, object)  # (track_path, QPoint)
 
     def __init__(self, app_state: AppState, parent=None):
         """Init event.
@@ -109,6 +110,7 @@ class HomeWindow(QWidget):
                     song_dur=meta.get("song_dur", "00:00"),
                     cover_data=meta.get("cover_data")
                 )
+                list_item.context_menu_requested.connect(lambda pos, p=full_path: self.add_to_playlist_requested.emit(p, pos))
 
             list_item.itemClicked.connect(lambda checked, p=full_path: self.itemClicked.emit(p))
             self.view_layout.addWidget(list_item)

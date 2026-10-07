@@ -1,4 +1,5 @@
-# app/components/song_list_item.py
+#components/song_list_item.py
+from pathlib import Path
 from PyQt5.QtCore import Qt, pyqtSignal, QRectF
 from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel
 from PyQt5.QtGui import QColor, QPainter, QPainterPath, QBrush, QPixmap
@@ -11,6 +12,7 @@ from .rounded_image_label import RoundedImageLabel
 
 class SongListItem(CardWidget):
     itemClicked = pyqtSignal(str)
+    context_menu_requested = pyqtSignal(object) # QPoint
 
     def __init__(self, file_name:str, song_name: str, artist: str = "Unknown Artist", 
                  song_dur: str = "00:00", cover_data: bytes = None, parent=None):
@@ -97,6 +99,11 @@ class SongListItem(CardWidget):
     def __on_clicked(self):
         """On item click event. Emit itemClicked."""
         self.itemClicked.emit(self.file_name)
+
+
+    def contextMenuEvent(self, event):
+        self.context_menu_requested.emit(event.globalPos())
+        event.accept()
 
 
     def enterEvent(self, event):

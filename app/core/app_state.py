@@ -1,8 +1,7 @@
 #core/app_state.py
 import json
 from pathlib import Path
-
-from pygame.mixer_music import play
+from typing import Optional
 
 DEFAULT_CONFIG = {
     "settings": {
@@ -19,7 +18,6 @@ DEFAULT_CONFIG = {
             "D:\\Programs\\Projects\\Projects Python\\Flacify\\music\\secret",
             ".trash"
         ],
-        "playlists_dir": ".\\playlists",
         "ui": {
             "theme": "dark",
             "accent_color": "#000000",
@@ -33,7 +31,9 @@ DEFAULT_CONFIG = {
         "current_track_path": "",
         "current_track_index": 0
     },
-    "library": {}
+    "library": {},
+    "playlists_dir": "playlists",
+    "last_playlist_id": None
 }
 
 
@@ -133,10 +133,6 @@ class AppState:
         return [Path(p) for p in self._data["settings"].get("excluded_folders", [])]
 
     @property
-    def playlists_dir(self) -> Path:
-        return Path(self._data["settings"].get("playlists_dir", "."))
-
-    @property
     def ui_config(self) -> dict:
         return self._data["settings"]["ui"]
 
@@ -202,3 +198,17 @@ class AppState:
 
     def update_library(self, updates: dict) -> None:
         self._data["library"].update(updates)
+
+    # ==================== playlists ==================
+
+    @property
+    def playlists_dir(self) -> Path:
+        return Path(self._data.get("playlists_dir", "playlists"))
+
+    @property
+    def last_playlist_id(self) -> Optional[str]:
+        return self._data.get("last_playlist_id")
+
+    @last_playlist_id.setter
+    def last_playlist_id(self, value: Optional[str]) -> None:
+        self._data["last_playlist_id"] = value

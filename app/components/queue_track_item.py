@@ -1,4 +1,4 @@
-# components/queue_track_item.py
+#components/queue_track_item.py
 from pathlib import Path
 from PyQt5.QtCore import Qt, pyqtSignal, QRectF, QPoint
 from PyQt5.QtGui import QColor, QPainter, QPainterPath, QBrush, QPixmap, QPen
@@ -15,6 +15,8 @@ class QueueTrackItem(QWidget):
     drag_moved = pyqtSignal(object, QPoint)
     drag_finished = pyqtSignal(object)
     track_double_clicked = pyqtSignal(Path)
+    track_single_clicked = pyqtSignal(Path)
+    context_menu_requested = pyqtSignal(Path, object)  # (track_path, QPoint)
 
     def __init__(self, track_path: Path, is_current: bool, parent=None):
         super().__init__(parent)
@@ -166,10 +168,14 @@ class QueueTrackItem(QWidget):
 
     def mouseReleaseEvent(self, event):
         """Drop element event. 
-        Change state is_dragging to False and emit drag_finished
+        Change state is_dragging to False and emit drag_finished.
+        If no drag occurred — emit track_single_clicked.
         """
         if self.is_dragging:
             self.drag_finished.emit(self)
+        else:
+            if event.button() == Qt.LeftButton:
+                self.track_single_clicked.emit(self.track_path)
         self.is_dragging = False
         self.setCursor(Qt.ArrowCursor)
 
@@ -197,3 +203,7 @@ class QueueTrackItem(QWidget):
         
         if self._original_pixmap and not self._original_pixmap.isNull():
             self.cover_label.setPixmap(self._original_pixmap)
+   
+    def contextMenuEvent(self, event):
+        self.context_menu_requested.emit(self.track_path, event.globalPos())
+        event.accept()

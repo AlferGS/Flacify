@@ -8,6 +8,10 @@ from .queue_window import QueueWindow
 from .rounded_image_label import RoundedImageLabel
 from .queue_track_item import QueueTrackItem
 from .queue_list_container import QueueListContainer
+from .add_to_playlist_dialog import AddToPlaylistDialog
+from .create_playlist_dialog import CreatePlaylistDialog
+from .playlist_badge import PlaylistBadge
+from .playlist_list_item import PlaylistListItem
 
 __all__ = [
     "FolderListItem",
@@ -19,4 +23,8 @@ __all__ = [
     "RoundedImageLabel",
     "QueueTrackItem",
     "QueueListContainer",
+    "AddToPlaylistDialog",
+    "CreatePlaylistDialog",
+    "PlaylistBadge",
+    "PlaylistListItem",
 ]

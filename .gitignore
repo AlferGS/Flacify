@@ -2,6 +2,7 @@ venv/
 .venv/
 build/
 dist/
+playlists/
 app/__pycache__/
 app/components/__pycache__/
 app/core/__pycache__/
@@ -11,3 +12,4 @@ __pycache__/
 *.pyc
 music/
 config.json
+*.json

@@ -29,6 +29,7 @@ a = Analysis(
     datas=qfw_datas + [
         ('config.json', '.'),
         ('app/assets/icon.ico', 'app/assets'),
+        ('playlists', 'playlists'),
     ],
     hiddenimports=[
         'mutagen', 'mutagen.mp3', 'mutagen.flac', 'mutagen.oggvorbis', 
