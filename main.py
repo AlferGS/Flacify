@@ -15,10 +15,35 @@ from app.windows import MainFluentWindow
 _LOG_DIR: Path | None = None
 _CRASH_STREAM = None
 
+_TRUE_VALUES = {"1", "true", "yes", "on"}
+_FALSE_VALUES = {"0", "false", "no", "off"}
+
+
+def _debug_enabled() -> bool:
+    """
+    Debug/diagnostics mode.
+
+    Priority:
+      1. explicit FLACIFY_DEBUG env var;
+      2. source run => enabled by default;
+      3. frozen exe => disabled by default.
+    """
+    raw = os.getenv("FLACIFY_DEBUG", "").strip().lower()
+
+    if raw in _TRUE_VALUES:
+        return True
+    if raw in _FALSE_VALUES:
+        return False
+
+    return not getattr(sys, "frozen", False)
+
+
+_DEBUG = _debug_enabled()
+
 
 def _resolve_log_dir() -> Path:
     """
-    Resolve writable log directory.
+    Resolve writable log directory for debug mode.
 
     For frozen exe: %LOCALAPPDATA%/Flacify/logs
     For source run: ./logs
@@ -47,7 +72,17 @@ def _resolve_log_dir() -> Path:
 
 
 def _install_diagnostics() -> None:
+    """
+    Install file logging, excepthooks and faulthandler only in debug mode.
+
+    In normal release mode all logging is disabled and no log files are created.
+    """
     global _LOG_DIR, _CRASH_STREAM
+
+    if not _DEBUG:
+        # Silence all logging calls from application modules.
+        logging.disable(logging.CRITICAL)
+        return
 
     _LOG_DIR = _resolve_log_dir()
     log_file = _LOG_DIR / "flacify.log"
@@ -91,13 +126,16 @@ def _install_diagnostics() -> None:
 
 def main() -> int:
     _install_diagnostics()
+
     logger = logging.getLogger("main")
-    logger.info("start application; log_dir=%s", _LOG_DIR)
+    if _DEBUG:
+        logger.info("start application; debug=%s; log_dir=%s", _DEBUG, _LOG_DIR)
 
     try:
         app = QApplication(sys.argv)
     except Exception:
-        logger.exception("Failed to create QApplication")
+        if _DEBUG:
+            logger.exception("Failed to create QApplication")
         return 1
 
     font = QFont("Segoe UI", 10)
@@ -106,23 +144,28 @@ def main() -> int:
     try:
         window = MainFluentWindow()
     except Exception:
-        logger.exception("Failed to create MainFluentWindow")
+        if _DEBUG:
+            logger.exception("Failed to create MainFluentWindow")
         return 1
 
     window.setStyleSheet("background-color: #000000")
     window.show()
 
-    app.aboutToQuit.connect(lambda: logger.info("aboutToQuit"))
+    if _DEBUG:
+        app.aboutToQuit.connect(lambda: logger.info("aboutToQuit"))
 
     try:
         rc = app.exec_()
-        logger.info("event loop exited with code %s", rc)
+        if _DEBUG:
+            logger.info("event loop exited with code %s", rc)
         return rc
     except Exception:
-        logger.exception("Error in Qt event loop")
+        if _DEBUG:
+            logger.exception("Error in Qt event loop")
         return 1
     finally:
-        logger.info("close application")
+        if _DEBUG:
+            logger.info("close application")
 
 
 if __name__ == "__main__":
