@@ -98,16 +98,16 @@ class MainFluentWindow(FluentWindow):
     def __connect_signals(self) -> None:
         """Connect core logic with UI."""
         # Signals AudioPlayerController -> PlayerBar
-        self.audio_player.sessionRestored.connect(self.home_window.player_bar._update_info_panel)
-        self.audio_player.playbackStateChanged.connect(self.home_window.player_bar._on_playback_state_changed)
-        self.audio_player.shuffleButtonEnabled.connect(self.home_window.player_bar._toggle_shuffle_button)
-        self.audio_player.trackChanged.connect(self.home_window.player_bar._update_info_panel)
-        self.audio_player.trackChanged.connect(self.home_window.queue_window._on_track_changed)
-        self.audio_player.trackSliderChanged.connect(self.home_window.player_bar._update_progress_slider)
-        self.audio_player.repeatModeChanged.connect(self.home_window.player_bar._on_repeat_mode_changed)
+        self.audio_player.sessionRestored.connect(self.home_window.player_bar.update_track_info)
+        self.audio_player.playbackStateChanged.connect(self.home_window.player_bar.set_playback_state)
+        self.audio_player.shuffleButtonEnabled.connect(self.home_window.player_bar.set_shuffle_enabled)
+        self.audio_player.trackChanged.connect(self.home_window.player_bar.update_track_info)
+        self.audio_player.trackChanged.connect(self.home_window.queue_window.update_track_info)
+        self.audio_player.trackSliderChanged.connect(self.home_window.player_bar.set_progress)
+        self.audio_player.repeatModeChanged.connect(self.home_window.player_bar.set_repeat_mode)
         
         # Signals AudioPlayerController -> QueueWindow
-        self.audio_player.updateShuffledPlaylist.connect(self.home_window.queue_window._update_queue)
+        self.audio_player.updateShuffledPlaylist.connect(self.home_window.queue_window.refresh_queue)
         
         # Signals PlayerBar -> AudioPlayerController
         self.home_window.player_bar.shuffle_button.clicked.connect(self.audio_player.shuffle_tail)
@@ -132,7 +132,7 @@ class MainFluentWindow(FluentWindow):
         self.home_window.queue_window.play_track_requested.connect(self.audio_player.play_at_index)
         
         # Signals FileBrowserModel -> HomeWindow
-        self.file_browser.directoryLoaded.connect(self.home_window._onDirectoryLoaded)
+        self.file_browser.directoryLoaded.connect(self.home_window.handle_directory_loaded)
         self.file_browser.directoryChanged.connect(self.home_window.requestDirectory)
         
         # Signals FileBrowserModel -> AudioPlayerController

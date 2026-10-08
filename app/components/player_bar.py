@@ -351,6 +351,26 @@ class PlayerBar(SimpleCardWidget):
         else:
             self.__set_default_cover()
 
+    # ==================== Public slots ====================
+    def update_track_info(self, title: str, artist: str, album: str, cover_data: object) -> None:
+        """Public slot: update current track info in player bar."""
+        self._update_info_panel(title, artist, album, cover_data)
+
+    def set_playback_state(self, is_playing: bool) -> None:
+        """Public slot: reflect play/pause state."""
+        self._on_playback_state_changed(is_playing)
+
+    def set_shuffle_enabled(self, enabled: bool) -> None:
+        """Public slot: enable/disable shuffle button."""
+        self._toggle_shuffle_button(enabled)
+
+    def set_progress(self, current_ms: int, total_ms: int) -> None:
+        """Public slot: update progress slider and time labels."""
+        self._update_progress_slider(current_ms, total_ms)
+
+    def set_repeat_mode(self, mode: RepeatMode) -> None:
+        """Public slot: update repeat indicator and tooltip."""
+        self._on_repeat_mode_changed(mode)
 
     def paintEvent(self, event):
         """PlayerBar is intentionally rendered as a flat black rectangle."""

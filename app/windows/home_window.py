@@ -146,11 +146,15 @@ class HomeWindow(QWidget):
         self.view_layout.addStretch(1)
 
     def _onDirectoryLoaded(self, payload: dict):
-        """Render the new item list after a directory scan completes."""
+        """Internal implementation: render browser items after directory scan."""
         if self._current_mode == "playlist":
             return
         self._current_mode = "browser"
         self.__render_items(payload)
+
+    def handle_directory_loaded(self, payload: dict) -> None:
+        """Public slot: render browser items after directory scan."""
+        self._onDirectoryLoaded(payload)
 
     # ==================== Playlist mode ====================
 

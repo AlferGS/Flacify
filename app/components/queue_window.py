@@ -165,4 +165,12 @@ class QueueWindow(QWidget):
         
         self.queue_list._update_current_highlight(self.app_state.current_track_index)
         self._update_queue()
-    
+
+    # ==================== Public slots ====================
+    def update_track_info(self, title: str, artist: str, album: str, cover_data: object) -> None:
+        """Public slot: update current track info and queue highlight."""
+        self._on_track_changed(title, artist, album, cover_data)
+
+    def refresh_queue(self) -> None:
+        """Public slot: rebuild queue list from AppState."""
+        self._update_queue()
