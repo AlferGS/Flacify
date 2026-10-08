@@ -273,18 +273,29 @@ class PlayerBar(SimpleCardWidget):
     def _update_progress_slider(self, current_ms: int, total_ms: int):
         """Update song progress slider value in ui."""
         self._total_duration_ms = total_ms
+
+        if total_ms <= 0:
+            self.song_duration.setText("00:00")
+            self.current_track_time.setText("00:00")
+            self.player_slider.blockSignals(True)
+            try:
+                self.player_slider.setRange(0, 0)
+                self.player_slider.setValue(0)
+            finally:
+                self.player_slider.blockSignals(False)
+            return
+
         self.song_duration.setText(self.__format_time(total_ms))
-        
+
         if self._is_slider_pressed:
             return
-        
+
         self.current_track_time.setText(self.__format_time(current_ms))
-        
+
         self.player_slider.blockSignals(True)
         try:
-            if total_ms > 0:
-                self.player_slider.setRange(0, total_ms)
-                self.player_slider.setValue(current_ms)
+            self.player_slider.setRange(0, total_ms)
+            self.player_slider.setValue(current_ms)
         finally:
             self.player_slider.blockSignals(False)
 

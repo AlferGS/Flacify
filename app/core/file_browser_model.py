@@ -143,8 +143,8 @@ class FileBrowserModel(QObject):
     def _on_directory_scan_error(self, message: str, generation: int) -> None:
         if generation != self._scan_generation:
             return
+        # Do not emit an empty payload: a transient scan error should not wipe the current list.
         print(f"[FileBrowserModel] Directory scan error: {message}")
-        self.directoryLoaded.emit({"items": [], "playlist": [], "metadata": {}})
 
     def _handle_item_click(self, item_path: Path):
         """Handling a click on an element."""

@@ -1,23 +1,20 @@
 #core/app_state.py
 import json
+import os
+import sys
 from pathlib import Path
 from typing import Optional
 
 DEFAULT_CONFIG = {
     "settings": {
-        "root_path": "D:\\Audio",
+        "root_path": str(Path.home() / "Music"),
         "supported_formats": [
-            ".mp3", 
-            ".ogg", 
-            ".wav", 
+            ".mp3",
+            ".ogg",
+            ".wav",
             ".flac"
         ],
-        "excluded_folders": [
-            "D:\\Music\\Audio\\Подкасты",
-            "D:\\Music\\Audio\\Звуки_системы",
-            "D:\\Programs\\Projects\\Projects Python\\Flacify\\music\\secret",
-            ".trash"
-        ],
+        "excluded_folders": [],
         "ui": {
             "theme": "dark",
             "accent_color": "#000000",
@@ -37,6 +34,35 @@ DEFAULT_CONFIG = {
 }
 
 
+def _is_playlists_dir_usable(path: Path) -> bool:
+    """
+    Try to create directory and write/remove a small probe file.
+    Returns True if the directory is usable for playlists storage.
+    """
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+        probe = path / ".flacify_write_probe"
+        probe.write_text("ok", encoding="utf-8")
+        probe.unlink(missing_ok=True)
+        return True
+    except OSError:
+        return False
+
+
+def _fallback_playlists_dir() -> Path:
+    """
+    User-specific fallback directory for playlists.
+    Used when CWD-relative ./playlists is not writable.
+    """
+    if sys.platform == "win32":
+        base = os.getenv("LOCALAPPDATA") or os.getenv("APPDATA")
+        if base:
+            return Path(base) / "Flacify" / "playlists"
+        return Path.home() / "AppData" / "Local" / "Flacify" / "playlists"
+
+    return Path.home() / ".local" / "share" / "flacify" / "playlists"
+
+
 class AppState:
     """
     Centralized storage of application configuration and state.
@@ -48,6 +74,7 @@ class AppState:
     def __init__(self, config_path: str | Path = "config.json"):
         self._config_path = Path(config_path)
         self._data: dict = {}
+        self._resolved_playlists_dir: Path | None = None
         self.__load_config_file()
 
 
@@ -203,7 +230,50 @@ class AppState:
 
     @property
     def playlists_dir(self) -> Path:
-        return Path(self._data.get("playlists_dir", "playlists"))
+        """
+        Resolve playlists directory with CWD-first strategy and user-dir fallback.
+
+        If config contains a relative path, e.g. "playlists":
+          1. try ./playlists relative to current working directory;
+          2. if not writable, fallback to user data directory;
+          3. remember fallback in runtime config to avoid splitting playlists.
+
+        Absolute paths are respected as-is.
+        """
+        if self._resolved_playlists_dir is not None:
+            return self._resolved_playlists_dir
+
+        raw = self._data.get("playlists_dir", "playlists")
+        configured = Path(raw)
+
+        if configured.is_absolute():
+            chosen = configured
+        else:
+            cwd_candidate = Path.cwd() / configured
+            fallback = _fallback_playlists_dir()
+
+            if _is_playlists_dir_usable(cwd_candidate):
+                chosen = cwd_candidate
+            elif _is_playlists_dir_usable(fallback):
+                print(
+                    "[AppState] Playlists directory "
+                    f"'{cwd_candidate}' is not writable. "
+                    f"Using fallback: {fallback}"
+                )
+                chosen = fallback
+                # Persist fallback for this process and future explicit saves.
+                # This prevents creating a second playlist library after restart.
+                self._data["playlists_dir"] = str(chosen)
+            else:
+                print(
+                    "[AppState] Warning: neither "
+                    f"'{cwd_candidate}' nor fallback '{fallback}' is writable. "
+                    "Playlist saving may fail."
+                )
+                chosen = cwd_candidate
+
+        self._resolved_playlists_dir = chosen
+        return chosen
 
     @property
     def last_playlist_id(self) -> Optional[str]:

@@ -1,33 +1,45 @@
 #main.py
 import sys
+import traceback
+
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QApplication
 
 from app.windows import MainFluentWindow
 
-def main(*args,**kwargs):
+
+def main() -> int:
     print('__main__: start application')
+
     try:
         app = QApplication(sys.argv)
-        font = QFont("Circular", 10)
-        app.setFont(font)
+    except Exception:
+        traceback.print_exc()
+        print('Error on application start (QApplication)')
+        return 1
 
-        main_app = MainFluentWindow()
-        main_app.setStyleSheet("background-color: #000000")
-        main_app.show()
+    font = QFont("Circular", 10)
+    app.setFont(font)
 
+    try:
+        window = MainFluentWindow()
+    except Exception:
+        traceback.print_exc()
+        print('Error on application start (MainFluentWindow)')
+        return 1
 
-    except Exception as e:
-        print (f'Error on application start ({e})')
+    window.setStyleSheet("background-color: #000000")
+    window.show()
+
+    try:
+        return app.exec_()
+    except Exception:
+        traceback.print_exc()
+        print('Error on closing application')
+        return 1
     finally:
-        try:
-            sys.exit(app.exec_())
+        print('__main__: close application')
 
-        except Exception as e:
-            print('Error on closing application ({e})')
-        finally:
-            print('__main__: close application')
 
-    
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

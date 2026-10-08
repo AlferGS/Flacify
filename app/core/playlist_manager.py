@@ -33,7 +33,12 @@ class PlaylistManager(QObject):
         """Create playlist, save it in directory, return id."""
         playlist = Playlist.create(name=name, color=color)
         self._playlists[playlist.id] = playlist
-        playlist.save(self._playlists_dir)
+
+        try:
+            playlist.save(self._playlists_dir)
+        except OSError as e:
+            print(f"[PlaylistManager] Cannot save new playlist {playlist.id}: {e}")
+
         self.playlists_changed.emit()
         return playlist.id
 
@@ -41,10 +46,16 @@ class PlaylistManager(QObject):
         """Delete playlist and his JSON-file."""
         if playlist_id not in self._playlists:
             return
+
         del self._playlists[playlist_id]
+
         file_path = self._playlists_dir / f"{playlist_id}.json"
-        if file_path.exists():
-            file_path.unlink()
+        try:
+            if file_path.exists():
+                file_path.unlink()
+        except OSError as e:
+            print(f"[PlaylistManager] Cannot delete playlist file {file_path}: {e}")
+
         self.playlists_changed.emit()
 
     def rename_playlist(self, playlist_id: str, new_name: str, new_color: str) -> None:
@@ -105,7 +116,13 @@ class PlaylistManager(QObject):
 
     def _ensure_directory(self) -> None:
         """Create folder playlists/ if it doesn't exist."""
-        self._playlists_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            self._playlists_dir.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            print(
+                f"[PlaylistManager] Cannot create playlists directory "
+                f"{self._playlists_dir}: {e}"
+            )
 
     def _scan_directory(self) -> None:
         """Load all .json from playlists/ directory."""
@@ -119,5 +136,10 @@ class PlaylistManager(QObject):
 
     def _save_playlist(self, playlist: Playlist) -> None:
         """Save playlist and emit signal."""
-        playlist.save(self._playlists_dir)
+        try:
+            playlist.save(self._playlists_dir)
+        except OSError as e:
+            print(f"[PlaylistManager] Cannot save playlist {playlist.id}: {e}")
+            return
+
         self.playlist_updated.emit(playlist.id)

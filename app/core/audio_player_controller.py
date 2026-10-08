@@ -52,8 +52,8 @@ class AudioPlayerController(QObject):
         self._event_timer.timeout.connect(self.update)
         self._event_timer.start(250)
 
-        # Restore volume and playlist from AppState
-        if self.app_state and self.app_state.playlist_paths:
+        # Restore volume from AppState regardless of queue state
+        if self.app_state:
             self.__apply_volume()
         
 
@@ -128,7 +128,8 @@ class AudioPlayerController(QObject):
             self.is_playing = True
             self.is_paused = True
             
-            self.playbackStateChanged.emit(True)
+            # Restored session is paused: UI must show PLAY, not PAUSE.
+            self.playbackStateChanged.emit(False)
             
             meta = MetadataReader.get_metadata(self.app_state.current_track_path)
             self.trackChanged.emit(meta["title"], meta["artist"], meta["album"], meta["cover_data"])
@@ -138,7 +139,7 @@ class AudioPlayerController(QObject):
             self._play_start_position_ms = 0
             
             has_next = self.app_state.current_track_index < len(self.app_state.playlist_paths) - 1
-            self.shuffleButtonEnabled.emit(has_next)
+            self.shuffleButtonEnabled.emit(has_next or self.is_repeated == RepeatMode.ALBUM_LOOP)
             
             return True
         except Exception as e:

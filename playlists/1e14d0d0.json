@@ -3,19 +3,19 @@
   "name": "Bring me the Horizon",
   "color": "#1E90FF",
   "created_at": "2026-10-07T16:48:52.443045",
-  "updated_at": "2026-10-08T15:42:40.094663",
+  "updated_at": "2026-10-08T16:07:33.149553",
   "tracks": [
     {
-      "path": "D:\\Audio\\Bring me the Horizon\\2020 - Post Human_ Survival Horror\\01 - Dear Diary,.flac",
-      "added_at": "2026-10-07T16:49:05.691036"
+      "path": "D:\\Audio\\Bring me the Horizon\\2013 - Sempiternal (Special Edition)\\Disc 1 - Sempiternal\\02. The House of Wolves.flac",
+      "added_at": "2026-10-08T15:42:40.094663"
     },
     {
       "path": "D:\\Audio\\Bring me the Horizon\\2013 - Sempiternal (Special Edition)\\Disc 1 - Sempiternal\\02. The House of Wolves.flac",
       "added_at": "2026-10-07T20:58:07.304671"
     },
     {
-      "path": "D:\\Audio\\Bring me the Horizon\\2020 - Post Human_ Survival Horror\\05 - Itch For The Cure (When Will We Be Free).flac",
-      "added_at": "2026-10-07T17:19:43.352067"
+      "path": "D:\\Audio\\Bring me the Horizon\\2020 - Post Human_ Survival Horror\\01 - Dear Diary,.flac",
+      "added_at": "2026-10-07T16:49:05.691036"
     },
     {
       "path": "D:\\Audio\\Bring me the Horizon\\2013 - Sempiternal (Special Edition)\\Disc 1 - Sempiternal\\02. The House of Wolves.flac",
@@ -27,11 +27,11 @@
     },
     {
       "path": "D:\\Audio\\Bring me the Horizon\\2020 - Post Human_ Survival Horror\\05 - Itch For The Cure (When Will We Be Free).flac",
-      "added_at": "2026-10-08T15:33:50.281083"
+      "added_at": "2026-10-07T17:19:43.352067"
     },
     {
-      "path": "D:\\Audio\\Bring me the Horizon\\2013 - Sempiternal (Special Edition)\\Disc 1 - Sempiternal\\02. The House of Wolves.flac",
-      "added_at": "2026-10-08T15:42:40.094663"
+      "path": "D:\\Audio\\Bring me the Horizon\\2020 - Post Human_ Survival Horror\\05 - Itch For The Cure (When Will We Be Free).flac",
+      "added_at": "2026-10-08T15:33:50.281083"
     }
   ]
 }

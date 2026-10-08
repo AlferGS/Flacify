@@ -107,7 +107,6 @@ class MainFluentWindow(FluentWindow):
         self.audio_player.repeatModeChanged.connect(self.home_window.player_bar._on_repeat_mode_changed)
         
         # Signals AudioPlayerController -> QueueWindow
-        self.audio_player.trackChanged.connect(self.home_window.queue_window._on_track_changed)
         self.audio_player.updateShuffledPlaylist.connect(self.home_window.queue_window._update_queue)
         
         # Signals PlayerBar -> AudioPlayerController
@@ -124,6 +123,9 @@ class MainFluentWindow(FluentWindow):
         self.home_window.itemClicked.connect(self.file_browser._handle_item_click)
         self.home_window.backRequested.connect(self.file_browser._back_previous_dir)
         self.home_window.requestDirectory.connect(self.file_browser._load_directory)
+
+        # Signals SettingsWindow -> HomeWindow/FileBrowserModel
+        self.settings_window.root_path_changed.connect(self.home_window.show_browser)
         
         # Signals QueueWindow -> AudioPlayerController
         self.home_window.queue_window.queue_reordered.connect(self.audio_player._update_queue_order)
@@ -380,9 +382,8 @@ class MainFluentWindow(FluentWindow):
             self.home_window.show_browser()
         # Move navigation focus to Home BEFORE removing the nav item
         self.switchTo(self.home_window)
+        # delete_playlist emits playlists_changed, which already rebuilds navigation.
         self.playlist_manager.delete_playlist(playlist_id)
-        # Force rebuild of the navigation section
-        self.__rebuild_playlist_navigation()
 
 
     def _on_add_to_playlist(self, track_path: Path, pos) -> None:

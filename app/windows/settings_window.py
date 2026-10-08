@@ -1,7 +1,7 @@
 #windows/settings_window.py
 import os
 from pathlib import Path
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QFileDialog, QVBoxLayout, QWidget
 
 from qfluentwidgets import FluentIcon as FIF, TransparentToolButton
@@ -10,6 +10,8 @@ from app.core.app_state import AppState
 
 class SettingsWindow(QWidget):
     """Settings page in main_fluent_window."""
+    root_path_changed = pyqtSignal()
+
     def __init__(self, app_state: AppState, parent=None):
         super().__init__(parent)
         self.app_state = app_state
@@ -99,7 +101,7 @@ class SettingsWindow(QWidget):
 
     def __on_save_btn_clicked(self):
         """Save Button clicked event.
-        Check path and save it in app_state with config file. 
+        Check path and save it in app_state with config file.
         """
         path_ = Path(self.path_lineedit.text().strip())
 
@@ -107,7 +109,18 @@ class SettingsWindow(QWidget):
             print("[SettingsWindow] Error: Folder isn't exist")
             return
 
-        self.app_state.root_path = str(path_)
+        old_root = self.app_state.root_path
+        new_root = Path(path_)
+
+        self.app_state.root_path = str(new_root)
+
+        # If library root changed, reset current folder and rescan Home browser.
+        if new_root != old_root:
+            self.app_state.current_library_path = str(new_root)
+
         self.app_state._save()
-        
-        print(f"[SettingsWindow] Config saved! root_path = {path_}")
+
+        if new_root != old_root:
+            self.root_path_changed.emit()
+
+        print(f"[SettingsWindow] Config saved! root_path = {new_root}")

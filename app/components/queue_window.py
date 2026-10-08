@@ -102,13 +102,13 @@ class QueueWindow(QWidget):
                 if pixmap.loadFromData(meta['cover_data']) and not pixmap.isNull():
                     self.cover_label.setPixmap(pixmap)
                 else:
-                    self.cover_label.clear()
+                    self._set_no_cover_pixmap()
             else:
-                self.cover_label.clear()
+                self._set_no_cover_pixmap()
         else:
             self.title_label._setText("No track selected")
             self.artist_label._setText("Unknown Artist")
-            self.cover_label.clear()
+            self._set_no_cover_pixmap()
 
         
     def __on_order_changed(self, from_idx: int, to_idx: int):

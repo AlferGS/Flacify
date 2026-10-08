@@ -336,7 +336,7 @@ class HomeWindow(QWidget):
                 lambda _, idx=track_index: self._on_playlist_track_clicked(idx)
             )
             item.context_menu_requested.connect(
-                lambda pos, p=track.path: self._on_playlist_track_context_menu(p, pos)
+                lambda pos, idx=track_index: self._on_playlist_track_context_menu(idx, pos)
             )
             items.append(item)
 
@@ -379,16 +379,14 @@ class HomeWindow(QWidget):
             all_paths = self._current_playlist.track_paths
             self.playlist_track_clicked.emit(track_index, all_paths)
 
-    def _on_playlist_track_context_menu(self, path: Path, pos) -> None:
-        """Context menu: add to playlist / remove from this playlist."""
+    def _on_playlist_track_context_menu(self, track_index: int, pos) -> None:
+        """Context menu: add to playlist / remove from this playlist by row index."""
         if self._current_playlist is None:
             return
+        if not (0 <= track_index < len(self._current_playlist.tracks)):
+            return
 
-        track_index = None
-        for i, t in enumerate(self._current_playlist.tracks):
-            if t.path == path:
-                track_index = i
-                break
+        path = self._current_playlist.tracks[track_index].path
 
         menu = QMenu(self)
         menu.setStyleSheet(
@@ -403,13 +401,12 @@ class HomeWindow(QWidget):
         )
         menu.addAction(add_action)
 
-        if track_index is not None:
-            remove_action = QAction("Remove from this playlist", self)
-            remove_action.triggered.connect(
-                lambda: self.playlist_remove_track_requested.emit(
-                    self._current_playlist.id, track_index
-                )
+        remove_action = QAction("Remove from this playlist", self)
+        remove_action.triggered.connect(
+            lambda: self.playlist_remove_track_requested.emit(
+                self._current_playlist.id, track_index
             )
-            menu.addAction(remove_action)
+        )
+        menu.addAction(remove_action)
 
         menu.exec_(pos)
