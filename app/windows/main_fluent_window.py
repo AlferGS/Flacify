@@ -276,13 +276,9 @@ class MainFluentWindow(FluentWindow):
 
 
     def __resize_to_center(self, width: int = None, height: int = None) -> None:
-        """ Make resize to center of screen.
-        Args:
-            width (int, optional): _description_. Defaults to None.
-            height (int, optional): _description_. Defaults to None.
-        """
-        width = max(width, self.__min_width)
-        height = max(height, self.__min_height)
+        """Resize the window to (width,height) clamped to minimums, centered on screen."""
+        width = self.__min_width if width is None else max(width, self.__min_width)
+        height = self.__min_height if height is None else max(height, self.__min_height)
         self.resize(width, height)
         self.move(QApplication.primaryScreen().availableGeometry().center() - self.rect().center())
 
@@ -331,11 +327,8 @@ class MainFluentWindow(FluentWindow):
 
     def _on_playlist_add_tracks(self, playlist_id: str) -> None:
         """Open file dialog and add selected tracks to playlist."""
-        extensions = " ".join(
-            f"*{ext}" for ext in sorted(
-                {".flac", ".mp3", ".wav", ".ogg", ".aac", ".m4a", ".wma"}
-            )
-        )
+        formats = self.app_state.supported_formats
+        extensions = " ".join(f"*{ext}" for ext in sorted(formats))
         files, _ = QFileDialog.getOpenFileNames(
             self, "Add tracks to playlist", "", f"Audio files ({extensions})"
         )

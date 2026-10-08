@@ -109,11 +109,7 @@ class HomeWindow(QWidget):
 
     def __render_items(self, payload: dict):
         """Clear current layout and render new files/folders from a scan payload."""
-        while self.view_layout.count():
-            item = self.view_layout.takeAt(0)
-            widget = item.widget()
-            if widget:
-                widget.deleteLater()
+        self._clear_view_layout()
 
         if self.app_state.current_library_path != self.app_state.root_path:
             prev_item = FolderListItem("[..]")
@@ -220,17 +216,20 @@ class HomeWindow(QWidget):
         self._playlist_track_items.clear()
 
     def _delete_layout_item(self, item) -> None:
-        """Recursively delete a layout item: widget or nested layout."""
+        """Recursively delete a layout item: widget, nested layout, or spacer."""
         widget = item.widget()
-        if widget:
+        if widget is not None:
             widget.setParent(None)
             widget.deleteLater()
             return
         layout = item.layout()
-        if layout:
+        if layout is not None:
             while layout.count():
                 child = layout.takeAt(0)
                 self._delete_layout_item(child)
+            layout.deleteLater()
+            return
+        # Spacer / other non-widget, non-layout item: nothing to free.
 
     def __render_playlist_header(self, playlist: Playlist) -> None:
         """Spotify-like header: badge+info row, controls row, divider."""

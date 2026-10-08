@@ -44,12 +44,6 @@ class QueueWindow(QWidget):
         self.cover_label = RoundedImageLabel(radius=6)
         self.cover_label.setFixedSize(225, 225)
         self.cover_label.setAlignment(Qt.AlignCenter)
-        self.cover_label.setStyleSheet("""
-            QLabel {
-                background: #222222;
-                border-radius: 6px;
-            }
-        """)
         
         self.title_label = MarqueeLabel("No track selected")
         self.title_label.setStyleSheet("color: #FFFFFF; font-size: 16px; font-weight: bold; background: transparent;")
@@ -122,9 +116,10 @@ class QueueWindow(QWidget):
 
 
     def _set_no_cover_pixmap(self):
-        """Create empty pixmap with text 'No Cover' and set it in label."""
+        """Create 'No Cover' placeholder pixmap on transparent canvas.
+        RoundedImageLabel paints the rounded background."""
         pixmap = QPixmap(225, 225)
-        pixmap.fill(QColor("#222222"))
+        pixmap.fill(Qt.transparent)
         
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.Antialiasing)

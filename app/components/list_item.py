@@ -1,5 +1,5 @@
 #components/list_item.py
-from PyQt5.QtCore import Qt, pyqtSignal, QRectF
+from PyQt5.QtCore import Qt, pyqtSignal, QRectF, QPoint
 from PyQt5.QtGui import QColor, QPainter, QPainterPath, QBrush, QCursor, QIcon
 from PyQt5.QtWidgets import QHBoxLayout
 from qfluentwidgets import BodyLabel, CardWidget, FluentIcon as FIF, IconWidget, TransparentToolButton
@@ -10,7 +10,7 @@ class ListItemBase(CardWidget):
     context_menu_requested(global QPoint) fires on right-click AND on '...' click."""
     context_menu_requested = pyqtSignal(object)
     drag_started = pyqtSignal(object)
-    drag_moved = pyqtSignal(object, object)   # (item, global QPoint)
+    drag_moved = pyqtSignal(object, QPoint)   # (item, global QPoint)
     drag_finished = pyqtSignal(object)
 
     def __init__(self, menu_enabled: bool = False, height: int = 46,

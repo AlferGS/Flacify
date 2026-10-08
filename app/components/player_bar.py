@@ -43,8 +43,6 @@ class PlayerBar(SimpleCardWidget):
         layout.addLayout(self.control_layout,0,1)
         layout.addLayout(self.vol_layout,0,2)
 
-        self.layout = layout
-
 
     @staticmethod
     def __format_time(ms: int) -> str:
@@ -89,9 +87,10 @@ class PlayerBar(SimpleCardWidget):
     
 
     def __set_default_cover(self):
-        """Set rounded 'No Cover' placeholder pixmap."""
+        """Set 'No Cover' placeholder pixmap on transparent canvas.
+        RoundedImageLabel paints the rounded background."""
         pixmap = QPixmap(60, 60)
-        pixmap.fill(QColor("#222222"))
+        pixmap.fill(Qt.transparent)
 
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.Antialiasing)

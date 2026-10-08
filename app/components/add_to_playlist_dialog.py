@@ -123,7 +123,8 @@ class AddToPlaylistDialog(MessageBoxBase):
     def refresh_playlists(self, playlists: list[Playlist], checked_ids: set = None) -> None:
         """Update list (after creating/deleting a playlist).
         checked_ids — set of playlist ids whose checkboxes will be True."""
-        checked_ids = checked_ids or set()
+        checked_ids = checked_ids if checked_ids is not None else set()
+        self._checked_ids = checked_ids
         # Clear area
         for row in self._rows:
             self._list_layout.removeWidget(row)

@@ -36,12 +36,6 @@ class QueueTrackItem(QWidget):
         self.cover_label = RoundedImageLabel(radius=4) 
         self.cover_label.setFixedSize(40, 40)
         self.cover_label.setAlignment(Qt.AlignCenter)
-        self.cover_label.setStyleSheet("""
-            QLabel {
-                background: #222222;
-                border-radius: 4px;
-            }
-        """)
         # PLAY icon on top of the cover
         self.play_icon_label = QLabel(self.cover_label)
         self.play_icon_label.setFixedSize(40, 40)

@@ -100,10 +100,12 @@ class PlaylistManager(QObject):
         self._save_playlist(playlist)
 
     # Requests
-
     def get_all_playlists(self) -> list[Playlist]:
-        """Return list of playlists."""
-        return list(self._playlists.values())
+        """Return playlists sorted by name (case-insensitive), then creation time."""
+        return sorted(
+            self._playlists.values(),
+            key=lambda p: (p.name.lower(), p.created_at),
+        )
 
     def get_playlist(self, playlist_id: str) -> Optional[Playlist]:
         return self._playlists.get(playlist_id)
@@ -113,7 +115,6 @@ class PlaylistManager(QObject):
         return [p for p in self._playlists.values() if p.contains(path)]
 
     # Protected
-
     def _ensure_directory(self) -> None:
         """Create folder playlists/ if it doesn't exist."""
         try:

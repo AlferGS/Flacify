@@ -1,7 +1,7 @@
 #components/song_list_item.py
 from pathlib import Path
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QPainter, QPixmap
 from PyQt5.QtWidgets import QLabel, QVBoxLayout
 from qfluentwidgets import BodyLabel, Theme, FluentIcon as FIF
 from app.utils import sanitize_metadata_text
@@ -39,7 +39,6 @@ class SongListItem(ListItemBase):
         self.cover_label = RoundedImageLabel(radius=4)
         self.cover_label.setFixedSize(40, 40)
         self.cover_label.setAlignment(Qt.AlignCenter)
-        self.cover_label.setStyleSheet("background: #222222;")
         self.play_icon_label = QLabel(self.cover_label)
         self.play_icon_label.setFixedSize(40, 40)
         self.play_icon_label.setAlignment(Qt.AlignCenter)
@@ -86,6 +85,16 @@ class SongListItem(ListItemBase):
 
     # ==================== Protected ====================
     def __load_cover_pixmap(self) -> QPixmap:
+        """
+        Return 40x40 pixmap.
+
+        - If cover exists: scaled cover filling 40x40.
+        - If no cover: transparent 40x40 canvas with 24x24 music icon centered.
+          RoundedImageLabel paints the rounded #222222 background.
+        """
+        target = QPixmap(40, 40)
+        target.fill(Qt.transparent)
+
         if self.cover_data:
             pixmap = QPixmap()
             if pixmap.loadFromData(self.cover_data) and not pixmap.isNull():
@@ -94,7 +103,21 @@ class SongListItem(ListItemBase):
                     Qt.KeepAspectRatioByExpanding,
                     Qt.SmoothTransformation
                 )
-        return FIF.MUSIC.icon(Theme.DARK).pixmap(24, 24)
+
+        icon_size = 24
+        icon_pixmap = FIF.MUSIC.icon(Theme.DARK).pixmap(icon_size, icon_size)
+
+        if not icon_pixmap.isNull():
+            painter = QPainter(target)
+            painter.setRenderHints(
+                QPainter.Antialiasing | QPainter.SmoothPixmapTransform
+            )
+            x = (40 - icon_size) // 2
+            y = (40 - icon_size) // 2
+            painter.drawPixmap(x, y, icon_pixmap)
+            painter.end()
+
+        return target
 
     def __on_clicked(self):
         self.itemClicked.emit(self.file_name)
