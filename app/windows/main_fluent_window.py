@@ -127,7 +127,7 @@ class MainFluentWindow(FluentWindow):
         
         # Signals QueueWindow -> AudioPlayerController
         self.home_window.queue_window.queue_reordered.connect(self.audio_player._update_queue_order)
-        self.home_window.queue_window.play_track_requested.connect(self.audio_player._play_file)
+        self.home_window.queue_window.play_track_requested.connect(self.audio_player._play_at_index)
         
         # Signals FileBrowserModel -> HomeWindow
         self.file_browser.directoryLoaded.connect(self.home_window._onDirectoryLoaded)
@@ -348,7 +348,7 @@ class MainFluentWindow(FluentWindow):
         if not playlist or not playlist.tracks:
             return
         paths = playlist.track_paths
-        self._play_playlist_track(paths[0], paths)
+        self._play_playlist_track(0, paths)
 
 
     def _on_playlist_shuffle(self, playlist_id: str) -> None:
@@ -358,7 +358,7 @@ class MainFluentWindow(FluentWindow):
             return
         paths = playlist.track_paths
         shuffle(paths)
-        self._play_playlist_track(paths[0], paths)
+        self._play_playlist_track(0, paths)
 
 
     def _on_playlist_delete(self, playlist_id: str) -> None:
@@ -460,7 +460,7 @@ class MainFluentWindow(FluentWindow):
             item.update_playlist(playlist)
 
 
-    def _play_playlist_track(self, path: Path, paths: list) -> None:
-        """Play a track from a playlist, setting the playlist as the current queue."""
+    def _play_playlist_track(self, track_index: int, paths: list) -> None:
+        """Play a track from a playlist by position, setting the playlist as current queue."""
         self.app_state.playlist_paths = paths
-        self.audio_player._play_file(path)
+        self.audio_player._play_at_index(track_index)

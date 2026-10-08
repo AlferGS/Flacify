@@ -163,9 +163,9 @@ class AppState:
     def current_track_path(self) -> Path:
         val = self._data["state"].get("current_track_path", "")
         if val == "":
-            playlist = self._data["state"].get("playlist_paths", "")
-            idx = self._data["state"].get("current_track_index", "")
-            if playlist and idx:
+            playlist = self._data["state"].get("playlist_paths", [])
+            idx = self._data["state"].get("current_track_index", -1)
+            if isinstance(idx, int) and 0 <= idx < len(playlist):
                 val = playlist[idx]
         return Path(val) if val else Path("")
 

@@ -29,7 +29,7 @@ class HomeWindow(QWidget):
     add_to_playlist_requested = pyqtSignal(Path, object)
 
     # Playlist signals
-    playlist_track_clicked = pyqtSignal(Path, list)         # (path, all_paths)
+    playlist_track_clicked = pyqtSignal(int, list)          # (track_index, all_paths)
     playlist_remove_track_requested = pyqtSignal(str, int)  # (playlist_id, track_index)
     playlist_add_tracks_requested = pyqtSignal(str)         # playlist_id
     playlist_play_requested = pyqtSignal(str)               # playlist_id
@@ -320,7 +320,7 @@ class HomeWindow(QWidget):
     def __render_playlist_tracks(self, playlist: Playlist) -> None:
         """Render playlist tracks as SongListItem rows inside a drag&drop container."""
         items = []
-        for track in playlist.tracks:
+        for track_index, track in enumerate(playlist.tracks):
             meta = MetadataReader.get_metadata(track.path)
             item = SongListItem(
                 file_name=track.path.name,
@@ -333,7 +333,7 @@ class HomeWindow(QWidget):
                 drag_enabled=True,
             )
             item.itemClicked.connect(
-                lambda checked, p=track.path: self._on_playlist_track_clicked(p)
+                lambda _, idx=track_index: self._on_playlist_track_clicked(idx)
             )
             item.context_menu_requested.connect(
                 lambda pos, p=track.path: self._on_playlist_track_context_menu(p, pos)
@@ -373,11 +373,11 @@ class HomeWindow(QWidget):
 
         menu.exec_(QCursor.pos())
 
-    def _on_playlist_track_clicked(self, path: Path) -> None:
-        """Single click on a playlist track — request playback."""
+    def _on_playlist_track_clicked(self, track_index: int) -> None:
+        """Single click on a playlist track — request playback by position."""
         if self._current_playlist:
             all_paths = self._current_playlist.track_paths
-            self.playlist_track_clicked.emit(path, all_paths)
+            self.playlist_track_clicked.emit(track_index, all_paths)
 
     def _on_playlist_track_context_menu(self, path: Path, pos) -> None:
         """Context menu: add to playlist / remove from this playlist."""

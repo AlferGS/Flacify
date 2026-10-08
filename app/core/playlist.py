@@ -117,9 +117,8 @@ class Playlist:
         try:
             data = json.loads(file_path.read_text(encoding="utf-8"))
             return cls.from_dict(data)
-        except (json.JSONDecodeError, KeyError, OSError):
+        except (json.JSONDecodeError, KeyError, OSError, ValueError, TypeError):
             return None
-
     # Factory
 
     @classmethod

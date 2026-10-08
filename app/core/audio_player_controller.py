@@ -241,7 +241,7 @@ class AudioPlayerController(QObject):
 
     
     def _play_file(self, path: Path) -> None:
-        """Starts playback of the specified file."""
+        """Starts playback of the specified file (by path; used by playlists)."""
         track_index = self._get_playlist_index(path)
         if track_index is not None:
             self.app_state.current_track_index = track_index
@@ -250,23 +250,40 @@ class AudioPlayerController(QObject):
         else:
             print(f"Track {path} not found in playlist")
 
+    def _play_at_index(self, index: int) -> None:
+        """Starts playback of the queue item at the given position (duplicate-safe).
+        Used by the queue double-click, where the clicked position is known."""
+        playlist = self.app_state.playlist_paths
+        if not playlist or index < 0 or index >= len(playlist):
+            print(f"[AudioPlayer] Invalid queue index: {index}")
+            return
+        self.app_state.current_track_index = index
+        self.app_state.current_track_path = playlist[index]
+        self._play_current_track()
+
 
     def _pause_track(self) -> None:
-        """Toggle track pause/unpause."""
+        """Toggle play/pause/resume. Handles stopped state (track ended)."""
         if not self.app_state.playlist_paths:
             return
 
         if self.is_playing and not self.is_paused:
+            # Playing -> pause
             mixer.music.pause()
             self.is_paused = True
             self._pause_position_ms = self.__get_current_position_ms()
             self.playbackStateChanged.emit(False)
-        else:
+        elif self.is_playing and self.is_paused:
+            # Paused -> resume
             mixer.music.unpause()
             self.is_paused = False
             self._play_start_time = time.time()
             self._play_start_position_ms = self._pause_position_ms
             self.playbackStateChanged.emit(True)
+        else:
+            # Stopped (track ended naturally / load error) -> replay current track.
+            # unpause() on a stopped stream does nothing, so we must reload.
+            self._play_current_track()
         
 
     def _toggle_mute(self) -> bool:
@@ -302,24 +319,34 @@ class AudioPlayerController(QObject):
         self.updateShuffledPlaylist.emit()
 
 
-    def _update_queue_order(self, new_order: list[Path]) -> None:
-        """Update index of current_track in app_state"""
-        current_path = self.app_state.current_track_path
-        
-        if not current_path or not current_path.exists():
+    def _update_queue_order(self, from_idx: int, to_idx: int) -> None:
+        """Reorder queue by positions (duplicate-safe) and remap current index."""
+        paths = self.app_state.playlist_paths  # new list[Path] from property
+        if not paths:
             return
-            
-        try:
-            new_index = new_order.index(current_path) # new index of current track
-                        
-            self.app_state.current_track_index = new_index
-            print(f"[AudioPlayer] Queue reordered. New current index: {new_index}")
-            
-            has_next = new_index < len(new_order) - 1
-            self.shuffleButtonEnabled.emit(has_next or self.is_repeated == RepeatMode.ALBUM_LOOP)
-            
-        except ValueError:
-            print("[AudioPlayer] Warning: Current track not found in new queue order.")
+        if not (0 <= from_idx < len(paths)) or not (0 <= to_idx < len(paths)):
+            return
+
+        entry = paths.pop(from_idx)
+        paths.insert(to_idx, entry)
+        self.app_state.playlist_paths = paths
+
+        # Remap current track index through the remove+insert permutation.
+        cur = self.app_state.current_track_index
+        if cur == from_idx:
+            new_cur = to_idx
+        elif from_idx < to_idx and from_idx < cur <= to_idx:
+            new_cur = cur - 1
+        elif to_idx < from_idx and to_idx <= cur < from_idx:
+            new_cur = cur + 1
+        else:
+            new_cur = cur
+
+        self.app_state.current_track_index = new_cur
+        self.app_state.current_track_path = paths[new_cur]
+
+        has_next = new_cur < len(paths) - 1
+        self.shuffleButtonEnabled.emit(has_next or self.is_repeated == RepeatMode.ALBUM_LOOP)
 
 
     def _seek(self, position_ms: int):

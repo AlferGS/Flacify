@@ -58,8 +58,8 @@ class BaseTrackListContainer(QWidget):
 
 class QueueListContainer(QWidget):
     """Container for track list. Manages their order."""
-    order_changed = pyqtSignal(list)
-    track_double_clicked = pyqtSignal(Path)
+    order_changed = pyqtSignal(int, int)      # (from_index, to_index)
+    track_double_clicked = pyqtSignal(int)    # clicked row index
 
     
     def __init__(self, parent=None):
@@ -72,6 +72,7 @@ class QueueListContainer(QWidget):
         self.layout.setSpacing(4)
         self.items = []
         self.dragged_item = None
+        self._drag_start_index = -1
         
         # Allows the container to stretch in width within the ScrollArea
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
@@ -79,8 +80,9 @@ class QueueListContainer(QWidget):
 
 
     def __on_drag_started(self, item):
-        """Start Drag event. Save draged item"""
+        """Start Drag event. Save dragged item and its start index."""
         self.dragged_item = item
+        self._drag_start_index = self.items.index(item) if item in self.items else -1
 
 
     def __on_drag_moved(self, item, global_pos):
@@ -112,16 +114,20 @@ class QueueListContainer(QWidget):
 
 
     def __on_drag_finished(self, item):
-        """Drop the element in queue."""
-        if self.dragged_item:
-            new_order = [item.track_path for item in self.items]
-            self.order_changed.emit(new_order)
-            self.dragged_item = None
+        """Drop the element in queue: emit (from, to) positions."""
+        if self.dragged_item is None:
+            return
+        new_index = self.items.index(self.dragged_item)
+        if self._drag_start_index != -1 and new_index != self._drag_start_index:
+            self.order_changed.emit(self._drag_start_index, new_index)
+        self.dragged_item = None
+        self._drag_start_index = -1
 
 
-    def __on_track_double_clicked(self, track_path: Path):
-        """Throw the double-click signal emit."""
-        self.track_double_clicked.emit(track_path)
+    def __on_track_double_clicked(self, widget):
+        """Translate clicked widget to its row index."""
+        if widget in self.items:
+            self.track_double_clicked.emit(self.items.index(widget))
 
 
     def __rebuild_layout(self):

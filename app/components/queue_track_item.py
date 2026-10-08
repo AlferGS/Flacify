@@ -14,7 +14,7 @@ class QueueTrackItem(QWidget):
     drag_started = pyqtSignal(object)
     drag_moved = pyqtSignal(object, QPoint)
     drag_finished = pyqtSignal(object)
-    track_double_clicked = pyqtSignal(Path)
+    track_double_clicked = pyqtSignal(object)  # emits self (widget), container maps to index
     track_single_clicked = pyqtSignal(Path)
     context_menu_requested = pyqtSignal(Path, object)  # (track_path, QPoint)
 
@@ -180,9 +180,9 @@ class QueueTrackItem(QWidget):
         self.setCursor(Qt.ArrowCursor)
 
     def mouseDoubleClickEvent(self, event):
-        """Catch Double Click event for emit play_song."""
+        """Catch Double Click event: emit self so the container can map to index."""
         if event.button() == Qt.LeftButton:
-            self.track_double_clicked.emit(self.track_path)
+            self.track_double_clicked.emit(self)
         super().mouseDoubleClickEvent(event)
 
     def enterEvent(self, event):

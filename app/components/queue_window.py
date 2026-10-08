@@ -15,8 +15,8 @@ class QueueWindow(QWidget):
     """Window for queue.
     Contains current track info and queue list.
     """
-    queue_reordered = pyqtSignal(list)
-    play_track_requested = pyqtSignal(Path)
+    queue_reordered = pyqtSignal(int, int)   # (from_index, to_index)
+    play_track_requested = pyqtSignal(int)   # clicked row index
 
     def __init__(self, app_state: AppState, parent=None):
         super().__init__(parent)
@@ -111,16 +111,14 @@ class QueueWindow(QWidget):
             self.cover_label.clear()
 
         
-    def __on_order_changed(self, new_order: list[Path]):
-        """Update AppState playlist after changing queue."""
-        self.app_state.playlist_paths = new_order
-        self.queue_reordered.emit(new_order)
-    
+    def __on_order_changed(self, from_idx: int, to_idx: int):
+        """Forward reorder positions to the controller (it owns playlist_paths)."""
+        self.queue_reordered.emit(from_idx, to_idx)
 
-    def __on_track_double_clicked(self, track_path: Path):
-        """Handling double click on a track in the queue to play track.
-        Emit play_track signal."""
-        self.play_track_requested.emit(track_path)
+
+    def __on_track_double_clicked(self, index: int):
+        """Double click on a queue row -> request playback by position."""
+        self.play_track_requested.emit(index)
 
 
     def _set_no_cover_pixmap(self):
