@@ -1,3 +1,4 @@
+#components/hover_slider.py
 from PyQt5.QtWidgets import QSlider
 
 class HoverSlider(QSlider):

@@ -20,8 +20,7 @@ from app.core.playlist import Playlist
 
 class PlaylistCheckRow(QWidget):
     """Single line: checkbox + badge + playlist name."""
-
-    def __init__(self, playlist: Playlist, parent=None):
+    def __init__(self, playlist: Playlist, checked: bool = False, parent=None):
         super().__init__(parent)
         self.playlist_id = playlist.id
 
@@ -30,7 +29,7 @@ class PlaylistCheckRow(QWidget):
         layout.setSpacing(10)
 
         self.checkbox = CheckBox()
-        self.checkbox.setChecked(False)
+        self.checkbox.setChecked(checked)
         layout.addWidget(self.checkbox)
 
         badge = PlaylistBadge(
@@ -56,9 +55,10 @@ class AddToPlaylistDialog(MessageBoxBase):
 
     confirmed = pyqtSignal(list)  # list[str] playlist_ids
 
-    def __init__(self, playlists: list[Playlist], parent=None):
+    def __init__(self, playlists: list[Playlist], parent=None, checked_ids: set = None):
         super().__init__(parent)
         self._rows: list[PlaylistCheckRow] = []
+        self._checked_ids = checked_ids or set()
 
         self.titleLabel = SubtitleLabel("Add to playlist", self)
         self.titleLabel.setContentsMargins(0, 0, 0, 12)
@@ -77,7 +77,7 @@ class AddToPlaylistDialog(MessageBoxBase):
         self._list_layout.setContentsMargins(0, 0, 0, 0)
 
         for playlist in playlists:
-            row = PlaylistCheckRow(playlist)
+            row = PlaylistCheckRow(playlist, checked=playlist.id in self._checked_ids)
             self._rows.append(row)
             self._list_layout.addWidget(row)
 
@@ -120,16 +120,19 @@ class AddToPlaylistDialog(MessageBoxBase):
             self.confirmed.emit(selected_ids)
         self.accept()
 
-    def refresh_playlists(self, playlists: list[Playlist]) -> None:
-        """Update list (after creating/deleting new/old playlist)."""
+    def refresh_playlists(self, playlists: list[Playlist], checked_ids: set = None) -> None:
+        """Update list (after creating/deleting a playlist).
+        checked_ids — set of playlist ids whose checkboxes will be True."""
+        checked_ids = checked_ids or set()
         # Clear area
         for row in self._rows:
             self._list_layout.removeWidget(row)
             row.deleteLater()
         self._rows.clear()
-
         # Recreate list
         for playlist in playlists:
-            row = PlaylistCheckRow(playlist)
+            row = PlaylistCheckRow(playlist, checked=playlist.id in checked_ids)
             self._rows.append(row)
             self._list_layout.insertWidget(self._list_layout.count() - 1, row)
+        # Adjust scroll height to the new row count
+        self._scroll_area.setFixedHeight(min(300, max(100, len(playlists) * 44)))

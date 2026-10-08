@@ -2,23 +2,30 @@
 import os
 from pathlib import Path
 os.environ['QFLUENT_WIDGETS_PRO_TIPS'] = '0'
+from random import shuffle
 
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QFileDialog
 from PyQt5.QtGui import QCloseEvent, QIcon
-from qfluentwidgets import FluentIcon as FIF, FluentWindow, NavigationItemPosition, Theme, setTheme
-
+from qfluentwidgets import (
+    FluentIcon as FIF,
+    FluentWindow,
+    IconWidget,
+    NavigationItemPosition,
+    Theme,
+    setTheme,
+    MessageBox,
+)
 from .home_window import HomeWindow
 from .settings_window import SettingsWindow
 from app.core import AudioPlayerController, FileBrowserModel, AppState
-
 from app.core.playlist_manager import PlaylistManager
 # from app.core.playlist import Playlist
-# from app.windows.playlists_window import PlaylistsWindow
-from app.windows.playlist_detail_window import PlaylistDetailWindow
-# from app.components.playlist_badge import PlaylistBadge
 from app.components.create_playlist_dialog import CreatePlaylistDialog
 from app.components.add_to_playlist_dialog import AddToPlaylistDialog
+from app.components.playlist_nav_item import PlaylistNavItem
 
+# Display size of the playlist badge in the navigation panel
+NAV_BADGE_SIZE = 36
 
 class MainFluentWindow(FluentWindow):
     """Main window"""
@@ -73,30 +80,12 @@ class MainFluentWindow(FluentWindow):
 
 
     def __create_playlist_manager_core(self) -> None:
-        # playlists manager
         self.playlist_manager = PlaylistManager(
             playlists_dir=self.app_state.playlists_dir,
             parent=self,
         )
-        # playlists pages
-        self.playlist_detail_window = PlaylistDetailWindow(self)
-        self.playlist_detail_window.set_app_state(self.app_state)
-
-        # Register PlaylistDetailWindow in stackedWidget (hidden from nav)
-        self.addSubInterface(
-            self.playlist_detail_window,
-            FIF.MUSIC,
-            "PlaylistDetail",
-            NavigationItemPosition.SCROLL,
-        )
-        # Hide its nav item — access is programmatic only
-        try:
-            self.navigationInterface.widget("PlaylistDetailWindow").hide()
-        except Exception:
-            pass
-
-        # dynamic playlist items in SCROLL
         self._playlist_nav_widgets: list[str] = []
+        self._playlist_nav_items: dict = {}
         self.__rebuild_playlist_navigation()
 
 
@@ -151,33 +140,30 @@ class MainFluentWindow(FluentWindow):
         
         # Signals PlaylistManager -> MainFluentWindow
         self.playlist_manager.playlists_changed.connect(self.__rebuild_playlist_navigation)
-
-        # Signals PlaylistDetailWindow -> AudioPlayerController
-        self.playlist_detail_window.play_track_requested.connect(self._play_playlist_track)
-        
-        # Signals PlaylistDetailWindow -> MainFluentWindow
-        self.playlist_detail_window.back_requested.connect(self._on_playlist_detail_back)
-        self.playlist_detail_window.add_to_playlist_requested.connect(self._on_add_to_playlist)
-
-        # Signals PlaylistDetailWindow -> PlaylistManager
-        self.playlist_detail_window.add_tracks_confirmed.connect(
-            lambda pid, paths: self.playlist_manager.add_tracks_to_playlist(pid, paths)
-        )
-        self.playlist_detail_window.remove_track_requested.connect(
+       
+        # Signals HomeWindow (playlist mode) -> MainFluentWindow
+        self.home_window.playlist_track_clicked.connect(self._play_playlist_track)
+        self.home_window.playlist_remove_track_requested.connect(
             lambda pid, idx: self.playlist_manager.remove_track_from_playlist(pid, idx)
         )
-        self.playlist_detail_window.reorder_requested.connect(
+        
+        self.home_window.playlist_add_tracks_requested.connect(self._on_playlist_add_tracks)
+        self.home_window.playlist_reorder_requested.connect(
             lambda pid, f, t: self.playlist_manager.move_track_in_playlist(pid, f, t)
         )
-
-        # Signals PlaylistManager → PlaylistDetailWindow
+        self.home_window.playlist_play_requested.connect(self._on_playlist_play)
+        self.home_window.playlist_shuffle_requested.connect(self._on_playlist_shuffle)
+        self.home_window.playlist_edit_requested.connect(self._on_edit_playlist)
+        self.home_window.playlist_delete_requested.connect(self._on_playlist_delete)
+        
+        # Signals PlaylistManager -> HomeWindow (playlist mode)
         self.playlist_manager.playlist_updated.connect(self._on_playlist_updated)
-
-        # Signals SongListItem → HomeWindow -> MainFluentWindow
+        
+        # Signals SongListItem -> HomeWindow -> MainFluentWindow
         self.home_window.add_to_playlist_requested.connect(self._on_add_to_playlist)
-
-        # Signals AudioPlayerController -> PlaylistDetailWindow
-        self.audio_player.trackChanged.connect(self.playlist_detail_window.highlight_current_track)
+        
+        # Signals AudioPlayerController -> HomeWindow (playlist highlight)
+        self.audio_player.trackChanged.connect(self.home_window.highlight_playlist_track)
 
         self.home_window.requestDirectory.emit()
 
@@ -230,35 +216,61 @@ class MainFluentWindow(FluentWindow):
 
     def __rebuild_playlist_navigation(self) -> None:
         """Rebuild the scrollable navigation section for the current playlist list."""
-        # Delete old objects
+        # Delete old objects; ids that failed to remove are kept for retry
+        not_removed = []
         for widget_id in self._playlist_nav_widgets:
-            try:
-                self.navigationInterface.removeItem(widget_id)
-            except Exception:
-                pass
-        self._playlist_nav_widgets.clear()
-
-        # Add new objects
+            if not self.__remove_nav_widget(widget_id):
+                not_removed.append(widget_id)
+        self._playlist_nav_widgets = not_removed
+        self._playlist_nav_items.clear()
+        # Add new objects via the official addWidget API (no monkey-patch).
+        # Signature (verified): addWidget(routeKey, widget: NavigationWidget,
+        #   onClick=None, position=TOP, tooltip=None, parentRouteKey=None)
         for playlist in self.playlist_manager.get_all_playlists():
             nav_id = f"playlist_{playlist.id}"
-            self.navigationInterface.addItem(
-                routeKey=nav_id,
-                icon=FIF.MUSIC,
-                text=playlist.name,
-                onClick=lambda checked, pid=playlist.id: self.__on_nav_playlist_clicked(pid),
+            item = PlaylistNavItem(playlist, badge_size=NAV_BADGE_SIZE)
+            self.navigationInterface.addWidget(
+                nav_id,
+                item,
+                onClick=lambda *_, pid=playlist.id: self.__on_nav_playlist_clicked(pid),
                 position=NavigationItemPosition.SCROLL,
                 tooltip=playlist.name,
             )
             self._playlist_nav_widgets.append(nav_id)
+            self._playlist_nav_items[nav_id] = item
 
+
+    def __remove_nav_widget(self, route_key: str) -> bool:
+        """Remove a navigation item by routeKey (version-safe). Return True if removed."""
+        try:
+            if hasattr(self.navigationInterface, "removeWidget"):
+                self.navigationInterface.removeWidget(route_key)
+            elif hasattr(self.navigationInterface, "removeItem"):
+                self.navigationInterface.removeItem(route_key)
+            else:
+                return False
+            return True
+        except Exception as e:
+            print(f"[MainFluentWindow] Failed to remove nav item {route_key}: {e}")
+            return False
+
+
+    def switchTo(self, widget) -> None:
+        """Override: navigating to Home while a playlist is open returns to browser.
+        Programmatic playlist opening bypasses this via stackedWidget.setCurrentWidget,
+        so the playlist nav item stays highlighted and the mode is not reset."""
+        if widget is self.home_window:
+            self.home_window.reset_to_browser_if_playlist()
+        super().switchTo(widget)
 
     def __on_nav_playlist_clicked(self, playlist_id: str) -> None:
-        """Click a playlist in the navigation → open its contents."""
+        """Click a playlist in the navigation → show it inside HomeWindow.
+        Uses setCurrentWidget (NOT switchTo) so the playlist nav item stays
+        selected and the browser-reset hook in switchTo is not triggered."""
         playlist = self.playlist_manager.get_playlist(playlist_id)
         if playlist:
-            self.playlist_detail_window.set_playlist(playlist)
-            # Switch stackedWidget directly (playlist_detail_window is hidden in nav)
-            self.stackedWidget.setCurrentWidget(self.playlist_detail_window)
+            self.home_window.show_playlist(playlist)
+            self.stackedWidget.setCurrentWidget(self.home_window)
 
 
     def __resize_to_center(self, width: int = None, height: int = None) -> None:
@@ -315,34 +327,138 @@ class MainFluentWindow(FluentWindow):
         self.playlist_manager.delete_playlist(playlist_id)
 
 
+    def _on_playlist_add_tracks(self, playlist_id: str) -> None:
+        """Open file dialog and add selected tracks to playlist."""
+        extensions = " ".join(
+            f"*{ext}" for ext in sorted(
+                {".flac", ".mp3", ".wav", ".ogg", ".aac", ".m4a", ".wma"}
+            )
+        )
+        files, _ = QFileDialog.getOpenFileNames(
+            self, "Add tracks to playlist", "", f"Audio files ({extensions})"
+        )
+        if files:
+            paths = [Path(f) for f in files]
+            self.playlist_manager.add_tracks_to_playlist(playlist_id, paths)
+
+
+    def _on_playlist_play(self, playlist_id: str) -> None:
+        """Green play button: always start playlist from the first track."""
+        playlist = self.playlist_manager.get_playlist(playlist_id)
+        if not playlist or not playlist.tracks:
+            return
+        paths = playlist.track_paths
+        self._play_playlist_track(paths[0], paths)
+
+
+    def _on_playlist_shuffle(self, playlist_id: str) -> None:
+        """Shuffle button: shuffle playlist tracks and start from a random first."""
+        playlist = self.playlist_manager.get_playlist(playlist_id)
+        if not playlist or not playlist.tracks:
+            return
+        paths = playlist.track_paths
+        shuffle(paths)
+        self._play_playlist_track(paths[0], paths)
+
+
+    def _on_playlist_delete(self, playlist_id: str) -> None:
+        """Delete playlist with confirmation; return to browser and refresh nav."""
+        playlist = self.playlist_manager.get_playlist(playlist_id)
+        if playlist is None:
+            return
+        box = MessageBox(
+            "Delete playlist",
+            f"Playlist '{playlist.name}' will be permanently deleted.",
+            self,
+        )
+        box.yesButton.setText("Delete")
+        box.cancelButton.setText("Cancel")
+        if not box.exec():
+            return
+        # If the deleted playlist is open — return HomeWindow to browser mode
+        if self.home_window.is_showing_playlist(playlist_id):
+            self.home_window.show_browser()
+        # Move navigation focus to Home BEFORE removing the nav item
+        self.switchTo(self.home_window)
+        self.playlist_manager.delete_playlist(playlist_id)
+        # Force rebuild of the navigation section
+        self.__rebuild_playlist_navigation()
+
+
     def _on_add_to_playlist(self, track_path: Path, pos) -> None:
         """Open the 'Add to playlist' dialog for a single track."""
         playlists = self.playlist_manager.get_all_playlists()
         if not playlists:
-            # if playlists doesn't exists -> create one.
-            self._on_create_playlist()
+            # No playlists yet: create one first, then open the dialog with it pre-checked
+            self._create_playlist_then_add(track_path)
             return
+        self._open_add_to_playlist_dialog(track_path, playlists)
 
-        dialog = AddToPlaylistDialog(playlists, parent=self)
+
+    def _open_add_to_playlist_dialog(
+        self,
+        track_path: Path,
+        playlists: list,
+        checked_ids: set = None,
+    ) -> None:
+        """Build and show AddToPlaylistDialog; '+ New playlist' refreshes the list in place."""
+        dialog = AddToPlaylistDialog(playlists, parent=self, checked_ids=checked_ids)
         dialog.confirmed.connect(
             lambda ids: self.playlist_manager.add_tracks_to_playlists([track_path], ids)
         )
-        dialog.new_playlist_requested.connect(self._on_create_playlist)
+        dialog.new_playlist_requested.connect(
+            lambda: self._on_new_playlist_from_add_dialog(dialog)
+        )
         dialog.exec()
 
 
-    def _on_playlist_detail_back(self) -> None:
-        """'Back' button in PlaylistDetailWindow → return to Home."""
-        self.switchTo(self.home_window)
+    def _on_new_playlist_from_add_dialog(self, dialog) -> None:
+        """'+ New playlist' inside the add dialog: create and refresh the list with the new row checked."""
+        creator = CreatePlaylistDialog(parent=self)
+
+        def _on_confirmed(name: str, color: str) -> None:
+            new_id = self.playlist_manager.create_playlist(name, color)
+            dialog.refresh_playlists(
+                self.playlist_manager.get_all_playlists(),
+                checked_ids={new_id},
+            )
+
+        creator.playlist_confirmed.connect(_on_confirmed)
+        creator.exec()
+
+
+    def _create_playlist_then_add(self, track_path: Path) -> None:
+        """No playlists exist: create one, then open the add dialog with it pre-checked."""
+        creator = CreatePlaylistDialog(parent=self)
+
+        def _on_confirmed(name: str, color: str) -> None:
+            new_id = self.playlist_manager.create_playlist(name, color)
+            self._open_add_to_playlist_dialog(
+                track_path,
+                self.playlist_manager.get_all_playlists(),
+                checked_ids={new_id},
+            )
+
+        creator.playlist_confirmed.connect(_on_confirmed)
+        creator.exec()
 
 
     def _on_playlist_updated(self, playlist_id: str) -> None:
-        """Playlist updated → if open, redraw."""
-        if self.playlist_detail_window._playlist and \
-           self.playlist_detail_window._playlist.id == playlist_id:
-            playlist = self.playlist_manager.get_playlist(playlist_id)
-            if playlist:
-                self.playlist_detail_window.set_playlist(playlist)
+        """Playlist updated → refresh HomeWindow view and the nav row (rename/recolor)."""
+        playlist = self.playlist_manager.get_playlist(playlist_id)
+        if playlist is None:
+            return
+        self.home_window.update_playlist_view(playlist)
+        self.__update_nav_playlist_item(playlist)
+
+
+    def __update_nav_playlist_item(self, playlist) -> None:
+        """Update a single navigation row in place via our own registry."""
+        nav_id = f"playlist_{playlist.id}"
+        item = self._playlist_nav_items.get(nav_id)
+        if item is not None:
+            item.update_playlist(playlist)
+
 
     def _play_playlist_track(self, path: Path, paths: list) -> None:
         """Play a track from a playlist, setting the playlist as the current queue."""

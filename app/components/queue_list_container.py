@@ -137,26 +137,25 @@ class QueueListContainer(QWidget):
         self.layout.addStretch()
 
 
-    def _update_current_highlight(self, current_path: Path):
-        """Update current highlight and text color by the state is_current for all elements of queue."""
-        for item in self.items:
+    def _update_current_highlight(self, current_index: int):
+        """Update current highlight by queue index (duplicate-safe)."""
+        for i, item in enumerate(self.items):
             old_is_current = item.is_current
-            item.is_current = (item.track_path == current_path)
+            item.is_current = (i == current_index)
             if old_is_current != item.is_current:
-                item._update_text_colors()  
+                item._update_text_colors()
                 item.update()
 
 
-    def _set_tracks(self, tracks: list[Path], current_track: Path):
+    def _set_tracks(self, tracks: list[Path], current_index: int):
         """Clears and refills the track list."""
         while self.layout.count() > 0:
             item = self.layout.takeAt(0)
             if item.widget():
                 item.widget().setParent(None)
-        
         self.items.clear()
-        for track in tracks:
-            item = QueueTrackItem(track, track == current_track)
+        for i, track in enumerate(tracks):
+            item = QueueTrackItem(track, i == current_index)
             item.drag_started.connect(self.__on_drag_started)
             item.drag_moved.connect(self.__on_drag_moved)
             item.drag_finished.connect(self.__on_drag_finished)

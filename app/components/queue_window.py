@@ -150,8 +150,8 @@ class QueueWindow(QWidget):
     def _update_queue(self):
         """Update queue list."""
         tracks = self.app_state.playlist_paths
-        current_track = self.app_state.current_track_path
-        self.queue_list._set_tracks(tracks, current_track)
+        current_index = self.app_state.current_track_index
+        self.queue_list._set_tracks(tracks, current_index)
         
         
     def _on_track_changed(self, title: str, artist: str, album: str, cover_data: object):
@@ -170,6 +170,6 @@ class QueueWindow(QWidget):
         else:
             self._set_no_cover_pixmap()
         
-        self.queue_list._update_current_highlight(self.app_state.current_track_path)
+        self.queue_list._update_current_highlight(self.app_state.current_track_index)
         self._update_queue()
     

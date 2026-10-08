@@ -1,5 +1,4 @@
-# app/utils/text_utils.py
-
+#utils/text_utils.py
 _SUSPICIOUS_CHARS = frozenset('ÃÂÄÖÜÝÞßåëïîáæÿøñýþðçêôùûüÿ')
 
 def sanitize_metadata_text(text: str) -> str | None:

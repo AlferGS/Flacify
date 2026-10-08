@@ -136,10 +136,8 @@ class FileBrowserModel(QObject):
     def _on_directory_scan_finished(self, payload: dict, generation: int) -> None:
         if generation != self._scan_generation:
             return
-
         metadata = payload.get("metadata", {})
         self._metadata_cache.update(metadata)
-        self.app_state.playlist_paths = payload.get("playlist", [])
         self.directoryLoaded.emit(payload)
 
     def _on_directory_scan_error(self, message: str, generation: int) -> None:
@@ -156,21 +154,18 @@ class FileBrowserModel(QObject):
             self._play_file(item_path)
 
     def _play_file(self, path: Path):
-        """Use the current directory playlist if available, otherwise build one."""
-        playlist = self.app_state.playlist_paths
+        """Build playlist from current directory and start playback."""
+        playlist = self.__create_playlist_from_dir()
         if not playlist:
-            playlist = self.__create_playlist_from_dir()
-            if not playlist:
-                print("No audio files in directory")
-                return
-
+            print("No audio files in directory")
+            return
         try:
             self.app_state.playlist_paths = playlist
             self.app_state.current_track_index = playlist.index(path)
             self.app_state.current_track_path = path
             self.playbackStarted.emit(path)
         except ValueError:
-            print("File not found in playlist")
+            print(f"[FileBrowserModel] File not found in directory playlist: {path}")
 
     def _is_supported(self, file: Path) -> bool:
         if file.is_dir():

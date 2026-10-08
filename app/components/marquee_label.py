@@ -1,3 +1,4 @@
+#components/marquee_label.py
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QFontMetrics, QPainter, QPalette
 from PyQt5.QtWidgets import QStyleOption
