@@ -9,7 +9,6 @@ from PyQt5.QtGui import QCloseEvent, QIcon
 from qfluentwidgets import (
     FluentIcon as FIF,
     FluentWindow,
-    IconWidget,
     NavigationItemPosition,
     Theme,
     setTheme,
@@ -19,7 +18,6 @@ from .home_window import HomeWindow
 from .settings_window import SettingsWindow
 from app.core import AudioPlayerController, FileBrowserModel, AppState
 from app.core.playlist_manager import PlaylistManager
-# from app.core.playlist import Playlist
 from app.components.create_playlist_dialog import CreatePlaylistDialog
 from app.components.add_to_playlist_dialog import AddToPlaylistDialog
 from app.components.playlist_nav_item import PlaylistNavItem
@@ -98,7 +96,6 @@ class MainFluentWindow(FluentWindow):
     def __connect_signals(self) -> None:
         """Connect core logic with UI."""
         # Signals AudioPlayerController -> PlayerBar
-        self.audio_player.sessionRestored.connect(self.home_window.player_bar.update_track_info)
         self.audio_player.playbackStateChanged.connect(self.home_window.player_bar.set_playback_state)
         self.audio_player.shuffleButtonEnabled.connect(self.home_window.player_bar.set_shuffle_enabled)
         self.audio_player.trackChanged.connect(self.home_window.player_bar.update_track_info)
@@ -137,8 +134,6 @@ class MainFluentWindow(FluentWindow):
         
         # Signals FileBrowserModel -> AudioPlayerController
         self.file_browser.playbackStarted.connect(self.audio_player.play_current_track)
-        self.file_browser.nextTrack.connect(self.audio_player.next_track)
-        self.file_browser.prevTrack.connect(self.audio_player.prev_track)
         
         # Signals PlaylistManager -> MainFluentWindow
         self.playlist_manager.playlists_changed.connect(self.__rebuild_playlist_navigation)
@@ -191,22 +186,12 @@ class MainFluentWindow(FluentWindow):
         """ Init windows for navigation bar and add
         it with icons.
         """
-        # Create Navigation Bar
-
-        #---------------------------------------
-        # TODO: Add scroll albums
-        #---------------------------------------
-
         self.addSubInterface(
             self.home_window, 
             icon=FIF.HOME,
             text="Home", 
             position=NavigationItemPosition.TOP
         )
-
-        #---------------------------------------
-        # TODO: Add albums with NavigationItemPosition.SCROLL
-        #---------------------------------------
 
         self.addSubInterface(
             self.settings_window, 
@@ -292,18 +277,6 @@ class MainFluentWindow(FluentWindow):
         super().closeEvent(event)
 
 
-    def _on_create_playlist(self) -> None:
-        """Open the playlist creation dialog."""
-        dialog = CreatePlaylistDialog(parent=self)
-        dialog.playlist_confirmed.connect(self._on_playlist_created)
-        dialog.exec()
-
-
-    def _on_playlist_created(self, name: str, color: str) -> None:
-        """Playlist created → refresh navigation and list."""
-        self.playlist_manager.create_playlist(name, color)
-
-
     def _on_edit_playlist(self, playlist_id: str) -> None:
         """Open the playlist editing dialog."""
         playlist = self.playlist_manager.get_playlist(playlist_id)
@@ -318,11 +291,6 @@ class MainFluentWindow(FluentWindow):
             lambda n, c: self.playlist_manager.rename_playlist(playlist_id, n, c)
         )
         dialog.exec()
-
-
-    def _on_delete_playlist(self, playlist_id: str) -> None:
-        """Delete playlist."""
-        self.playlist_manager.delete_playlist(playlist_id)
 
 
     def _on_playlist_add_tracks(self, playlist_id: str) -> None:

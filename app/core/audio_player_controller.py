@@ -23,7 +23,6 @@ class AudioPlayerController(QObject):
     shuffleButtonEnabled = pyqtSignal(bool) # is shuffle Button Enabled
     trackChanged = pyqtSignal(str, str, str, object)  #title, artist, album, cover_data
     trackSliderChanged = pyqtSignal(int, int) # current_ms, total_ms
-    sessionRestored = pyqtSignal(str, str, str, object) # title, artist, album, cover_data
     repeatModeChanged = pyqtSignal(RepeatMode)
     updateShuffledPlaylist = pyqtSignal()
 

@@ -3,7 +3,6 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Optional
 
 DEFAULT_CONFIG = {
     "settings": {
@@ -14,13 +13,7 @@ DEFAULT_CONFIG = {
             ".wav",
             ".flac"
         ],
-        "excluded_folders": [],
-        "ui": {
-            "theme": "dark",
-            "accent_color": "#000000",
-            "button_color": "#181818",
-            "active_color": "#1DB954"
-        }
+        "excluded_folders": []
     },
     "state": {
         "volume": 0.25,
@@ -28,9 +21,7 @@ DEFAULT_CONFIG = {
         "current_track_path": "",
         "current_track_index": 0
     },
-    "library": {},
-    "playlists_dir": "playlists",
-    "last_playlist_id": None
+    "playlists_dir": "playlists"
 }
 
 
@@ -132,7 +123,6 @@ class AppState:
         supported_formats = {self.supported_formats}
         excluded_folders = {self.excluded_folders}
         playlists_dir = {self.playlists_dir}
-        ui_config = {self.ui_config}
         ------------------
          \t---- state ----
         volume = {self.volume}
@@ -140,9 +130,6 @@ class AppState:
         current_track_path = {self.current_track_path}
         current_track_index = {self.current_track_index}
         playlist_paths = {[f'{str(x)}' for x in self.playlist_paths]}
-        ------------------
-         \t--- library ---
-        library = {self.library}
         ------------------
         """)
 
@@ -164,14 +151,6 @@ class AppState:
     @property
     def excluded_folders(self) -> list[Path]:
         return [Path(p) for p in self._data["settings"].get("excluded_folders", [])]
-
-    @property
-    def ui_config(self) -> dict:
-        return self._data["settings"]["ui"]
-
-    def update_ui_config(self, updates: dict) -> None:
-        """Batch update of UI settings."""
-        self._data["settings"]["ui"].update(updates)
 
     # ==================== state ====================
 
@@ -223,15 +202,6 @@ class AppState:
     def playlist_paths(self, paths: list[Path]) -> None:
         self._data["state"]["playlist_paths"] = [str(p) for p in paths]
 
-    # ==================== library ====================
-
-    @property
-    def library(self) -> dict:
-        return self._data["library"]
-
-    def update_library(self, updates: dict) -> None:
-        self._data["library"].update(updates)
-
     # ==================== playlists ==================
 
     @property
@@ -280,11 +250,3 @@ class AppState:
 
         self._resolved_playlists_dir = chosen
         return chosen
-
-    @property
-    def last_playlist_id(self) -> Optional[str]:
-        return self._data.get("last_playlist_id")
-
-    @last_playlist_id.setter
-    def last_playlist_id(self, value: Optional[str]) -> None:
-        self._data["last_playlist_id"] = value

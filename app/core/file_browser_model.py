@@ -4,10 +4,10 @@ from pathlib import Path
 
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 
-logger = logging.getLogger("file_browser")
-
 from .metadata_reader import MetadataReader
 from .app_state import AppState
+
+logger = logging.getLogger("file_browser")
 
 
 def _is_supported_entry(path: Path, app_state: AppState) -> bool:
@@ -135,8 +135,6 @@ class FileBrowserModel(QObject):
     directoryChanged = pyqtSignal()
     directoryLoaded = pyqtSignal(object)
     playbackStarted = pyqtSignal(Path)
-    nextTrack = pyqtSignal()
-    prevTrack = pyqtSignal()
 
     def __init__(self, app_state: AppState, parent=None):
         """Init model and restore position from last session."""

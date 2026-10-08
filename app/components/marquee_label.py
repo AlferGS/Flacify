@@ -118,3 +118,5 @@ class MarqueeLabel(BodyLabel):
             opt.text, 
             QPalette.WindowText
         )
+
+        painter.end()

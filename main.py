@@ -100,7 +100,7 @@ def main() -> int:
         logger.exception("Failed to create QApplication")
         return 1
 
-    font = QFont("Circular", 10)
+    font = QFont("Segoe UI", 10)
     app.setFont(font)
 
     try:

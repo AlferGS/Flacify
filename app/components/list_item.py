@@ -96,6 +96,7 @@ class ListItemBase(CardWidget):
         else:
             bg_color = QColor("#111111")
         painter.fillPath(path, QBrush(bg_color))
+        painter.end()
 
 
 class FolderListItem(ListItemBase):

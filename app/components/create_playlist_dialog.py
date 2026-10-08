@@ -1,19 +1,15 @@
 #components/create_playlist_dialog.py
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QColor
+from PyQt5.QtCore import Qt, QRectF, pyqtSignal
+from PyQt5.QtGui import QColor, QPainter, QPen
 from PyQt5.QtWidgets import (
     QHBoxLayout,
     QLabel,
-    QVBoxLayout,
     QWidget,
 )
 from qfluentwidgets import (
-    FluentIcon,
     LineEdit,
     MessageBoxBase,
-    PushButton,
     SubtitleLabel,
-    TogglePushButton,
 )
 
 # Pre-installed color palette
@@ -49,9 +45,6 @@ class ColorSwatch(QWidget):
         self.update()
 
     def paintEvent(self, event):
-        from PyQt5.QtGui import QPainter, QPen
-        from PyQt5.QtCore import QRectF
-
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 

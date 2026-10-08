@@ -12,6 +12,7 @@ from .playlist_track_container import PlaylistTrackContainer
 from .add_to_playlist_dialog import AddToPlaylistDialog
 from .create_playlist_dialog import CreatePlaylistDialog
 from .playlist_badge import PlaylistBadge
+from .round_tool_button import RoundToolButton
 
 __all__ = [
     "ListItemBase",
@@ -28,4 +29,5 @@ __all__ = [
     "AddToPlaylistDialog",
     "CreatePlaylistDialog",
     "PlaylistBadge",
+    "RoundToolButton",
 ]

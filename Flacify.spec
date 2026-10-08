@@ -1,6 +1,4 @@
-import sys
 import os
-from pathlib import Path
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 block_cipher = None
@@ -8,30 +6,16 @@ block_cipher = None
 # Собираем данные qfluentwidgets (иконки, стили, ресурсы)
 qfw_datas = collect_data_files('qfluentwidgets')
 
-conda_binaries = []
-potential_paths = [
-    os.path.join(sys.prefix, 'Library', 'bin', 'libexpat.dll'),
-    os.path.join(sys.prefix, 'Library', 'lib', 'libexpat.dll'),
-    os.path.join(sys.prefix, 'DLLs', 'libexpat.dll'),
-    os.path.join(sys.base_prefix, 'Library', 'bin', 'libexpat.dll'),
-]
-
-for p in potential_paths:
-    if os.path.exists(p):
-        conda_binaries.append((p, '.'))
-        print(f"[Spec] Found and added: {p}")
-        break
-
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=conda_binaries,
+    binaries=[],
     datas=qfw_datas + [
         ('app/assets/icon.ico', 'app/assets'),
     ],
     hiddenimports=[
         'mutagen', 'mutagen.mp3', 'mutagen.flac', 'mutagen.oggvorbis', 
-        'mutagen.mp4', 'mutagen.wave', 'pygame', 'qfluentwidgets',
+        'mutagen.wave', 'pygame', 'qfluentwidgets',
         'pyexpat', 'xml.parsers.expat', 'xml.parsers', 'xml', 'PyQt5.sip'
     ] + collect_submodules('mutagen'),
     hookspath=[],
@@ -40,7 +24,7 @@ a = Analysis(
         'tkinter', 'unittest', 'xmlrpc', 'pydoc',
         'PyQt6', 'PyQt6.QtCore', 'PyQt6.QtGui', 'PyQt6.QtWidgets', 
         'PyQt6.QtNetwork', 'PyQt6.QtDBus', 'PyQt6.sip',
-        'PyQt6.Qt6', 'sip', 'darkdetect._mac_detect'
+        'sip', 'darkdetect._mac_detect'
     ],
     win_no_prefer_redirects=False,
     cipher=block_cipher

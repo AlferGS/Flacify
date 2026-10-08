@@ -20,13 +20,13 @@ class SettingsWindow(QWidget):
 
     def __init_ui(self):
         """Init UI part of page."""
-        self.setObjectName("Settings Window")
+        self.setObjectName("SettingsWindow")
         self.setContentsMargins(15, 5, 15, 5)
 
         self.vbox = QVBoxLayout(self)
         self.vbox.setAlignment(Qt.AlignTop)
 
-        main_label = QLabel("<b>Settings<\b>")
+        main_label = QLabel("<b>Settings</b>")
         main_label.setAlignment(Qt.AlignLeft)
         main_label.setStyleSheet("color: #FFFFFF; font-size: 16px;")
         
@@ -60,7 +60,7 @@ class SettingsWindow(QWidget):
             }
         """)
         self.path_lineedit.setMinimumWidth(500)
-        self.path_lineedit.setEnabled(False)
+        self.path_lineedit.setEnabled(True)
         # QFileDialog Button
         self.path_btn = TransparentToolButton(FIF.MEDIA)
         self.path_btn.clicked.connect(self.__on_path_btn_clicked)

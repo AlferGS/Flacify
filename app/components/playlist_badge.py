@@ -36,7 +36,7 @@ class PlaylistBadge(QWidget):
         'Evening Chill' -> 'EC'
         'Work Mix'      -> 'WM'
         'Focus'         -> 'F'
-        'My Super Long' -> 'MSLP'
+        'My Super Long Playlist' -> 'MSLP'
     """
 
     def __init__(self, initials: str = "", color: str = "#1DB954", size: int = 40, parent=None):
