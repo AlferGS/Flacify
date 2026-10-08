@@ -105,8 +105,14 @@ class AppState:
                 self.__merge_defaults(target[key], value)
 
 
+    def save(self) -> None:
+        """Public API: persist current state to config.json."""
+        self._save()
+
     def _save(self) -> None:
         """
+        Internal implementation. Prefer save() from UI/external code.
+
         Explicitly writes the current state to a file.
         Called ONLY when the Save button is clicked or the application is closed.
         """

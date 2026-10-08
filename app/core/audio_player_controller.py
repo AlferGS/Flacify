@@ -111,6 +111,59 @@ class AudioPlayerController(QObject):
         self._next_track()
 
 
+    # ==================== Public API ====================
+    def restore_session(self) -> bool:
+        """Public API: restore last session (loaded paused)."""
+        return self._restore_last_session()
+
+    def next_track(self) -> None:
+        """Public API: skip to next track."""
+        self._next_track()
+
+    def prev_track(self) -> None:
+        """Public API: skip to previous track / rewind first."""
+        self._prev_track()
+
+    def play_current_track(self) -> None:
+        """Public API: start/restart the current track from current index/path."""
+        self._play_current_track()
+
+    def play_file(self, path: Path) -> None:
+        """Public API: start playback by path (legacy path-based entry)."""
+        self._play_file(path)
+
+    def play_at_index(self, index: int) -> None:
+        """Public API: start playback by queue position (duplicate-safe)."""
+        self._play_at_index(index)
+
+    def toggle_playback(self) -> None:
+        """Public API: play/pause/resume depending on current state."""
+        self._pause_track()
+
+    def toggle_mute(self) -> bool:
+        """Public API: toggle mute and return new muted state."""
+        return self._toggle_mute()
+
+    def toggle_repeat(self) -> None:
+        """Public API: cycle repeat mode."""
+        self._toggle_repeat()
+
+    def set_volume(self, volume: float) -> None:
+        """Public API: set volume 0.0..1.0 and sync mute state."""
+        self._set_volume(volume)
+
+    def seek(self, position_ms: int) -> None:
+        """Public API: seek to absolute position in milliseconds."""
+        self._seek(position_ms)
+
+    def shuffle_tail(self) -> None:
+        """Public API: shuffle tracks after the current one."""
+        self._shuffle_playlist()
+
+    def reorder_queue(self, from_idx: int, to_idx: int) -> None:
+        """Public API: reorder queue by positions (duplicate-safe)."""
+        self._update_queue_order(from_idx, to_idx)
+
     def _restore_last_session(self) -> bool:
         """
         Try to restore data about last track before closing app.

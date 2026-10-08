@@ -295,6 +295,19 @@ class FileBrowserModel(QObject):
         # Do not emit an empty payload: a transient scan error should not wipe the current list.
         logger.error("Directory scan error: generation=%s message=%s", generation, message)
 
+    # ==================== Public API ====================
+    def handle_item_click(self, item_path: Path) -> None:
+        """Public API: handle click on browser item."""
+        self._handle_item_click(item_path)
+
+    def load_directory(self) -> None:
+        """Public API: start asynchronous scan of current library directory."""
+        self._load_directory()
+
+    def back_previous_dir(self) -> None:
+        """Public API: go to parent directory."""
+        self._back_previous_dir()
+
     def _handle_item_click(self, item_path: Path):
         """Handling a click on an element without extra filesystem stat when possible."""
         if item_path in self._current_scan_dirs:

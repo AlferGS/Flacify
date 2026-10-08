@@ -110,35 +110,35 @@ class MainFluentWindow(FluentWindow):
         self.audio_player.updateShuffledPlaylist.connect(self.home_window.queue_window._update_queue)
         
         # Signals PlayerBar -> AudioPlayerController
-        self.home_window.player_bar.shuffle_button.clicked.connect(self.audio_player._shuffle_playlist)
-        self.home_window.player_bar.prev_button.clicked.connect(self.audio_player._prev_track)
-        self.home_window.player_bar.togglePlayBtn.connect(self.audio_player._pause_track)
-        self.home_window.player_bar.next_button.clicked.connect(self.audio_player._next_track)
-        self.home_window.player_bar.repeat_button.clicked.connect(self.audio_player._toggle_repeat)
-        self.home_window.player_bar.audioSliderReleased.connect(self.audio_player._seek)
-        self.home_window.player_bar.toggleMuteBtn.connect(self.audio_player._toggle_mute)
-        self.home_window.player_bar.volumeSliderChanged.connect(self.audio_player._set_volume)
+        self.home_window.player_bar.shuffle_button.clicked.connect(self.audio_player.shuffle_tail)
+        self.home_window.player_bar.prev_button.clicked.connect(self.audio_player.prev_track)
+        self.home_window.player_bar.togglePlayBtn.connect(self.audio_player.toggle_playback)
+        self.home_window.player_bar.next_button.clicked.connect(self.audio_player.next_track)
+        self.home_window.player_bar.repeat_button.clicked.connect(self.audio_player.toggle_repeat)
+        self.home_window.player_bar.audioSliderReleased.connect(self.audio_player.seek)
+        self.home_window.player_bar.toggleMuteBtn.connect(self.audio_player.toggle_mute)
+        self.home_window.player_bar.volumeSliderChanged.connect(self.audio_player.set_volume)
         
         # Signals HomeWindow -> FileBrowserModel
-        self.home_window.itemClicked.connect(self.file_browser._handle_item_click)
-        self.home_window.backRequested.connect(self.file_browser._back_previous_dir)
-        self.home_window.requestDirectory.connect(self.file_browser._load_directory)
+        self.home_window.itemClicked.connect(self.file_browser.handle_item_click)
+        self.home_window.backRequested.connect(self.file_browser.back_previous_dir)
+        self.home_window.requestDirectory.connect(self.file_browser.load_directory)
 
         # Signals SettingsWindow -> HomeWindow/FileBrowserModel
         self.settings_window.root_path_changed.connect(self.home_window.show_browser)
         
         # Signals QueueWindow -> AudioPlayerController
-        self.home_window.queue_window.queue_reordered.connect(self.audio_player._update_queue_order)
-        self.home_window.queue_window.play_track_requested.connect(self.audio_player._play_at_index)
+        self.home_window.queue_window.queue_reordered.connect(self.audio_player.reorder_queue)
+        self.home_window.queue_window.play_track_requested.connect(self.audio_player.play_at_index)
         
         # Signals FileBrowserModel -> HomeWindow
         self.file_browser.directoryLoaded.connect(self.home_window._onDirectoryLoaded)
         self.file_browser.directoryChanged.connect(self.home_window.requestDirectory)
         
         # Signals FileBrowserModel -> AudioPlayerController
-        self.file_browser.playbackStarted.connect(self.audio_player._play_current_track)
-        self.file_browser.nextTrack.connect(self.audio_player._next_track)
-        self.file_browser.prevTrack.connect(self.audio_player._prev_track)
+        self.file_browser.playbackStarted.connect(self.audio_player.play_current_track)
+        self.file_browser.nextTrack.connect(self.audio_player.next_track)
+        self.file_browser.prevTrack.connect(self.audio_player.prev_track)
         
         # Signals PlaylistManager -> MainFluentWindow
         self.playlist_manager.playlists_changed.connect(self.__rebuild_playlist_navigation)
@@ -184,7 +184,7 @@ class MainFluentWindow(FluentWindow):
         Invoke restoring last track.
         If file exist, load it in player and update UI on start of track.
         """
-        return self.audio_player._restore_last_session()
+        return self.audio_player.restore_session()
 
 
     def __create_nav_field(self) -> None:
@@ -288,7 +288,7 @@ class MainFluentWindow(FluentWindow):
         Override closing window event.
         Save state in file.
         """
-        self.app_state._save()
+        self.app_state.save()
         super().closeEvent(event)
 
 
@@ -457,4 +457,4 @@ class MainFluentWindow(FluentWindow):
     def _play_playlist_track(self, track_index: int, paths: list) -> None:
         """Play a track from a playlist by position, setting the playlist as current queue."""
         self.app_state.playlist_paths = paths
-        self.audio_player._play_at_index(track_index)
+        self.audio_player.play_at_index(track_index)

@@ -118,7 +118,7 @@ class SettingsWindow(QWidget):
         if new_root != old_root:
             self.app_state.current_library_path = str(new_root)
 
-        self.app_state._save()
+        self.app_state.save()
 
         if new_root != old_root:
             self.root_path_changed.emit()
