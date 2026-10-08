@@ -47,7 +47,7 @@ class QueueWindow(QWidget):
         self.cover_label.setStyleSheet("""
             QLabel {
                 background: #222222;
-                border-radius: 8px;
+                border-radius: 6px;
             }
         """)
         

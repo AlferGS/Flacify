@@ -8,6 +8,8 @@ from qfluentwidgets import FluentIcon as FIF, SimpleCardWidget, TransparentToolB
 from app.core import AppState, RepeatMode
 from .marquee_label import MarqueeLabel
 from .hover_slider import HoverSlider
+from .rounded_image_label import RoundedImageLabel
+from .round_tool_button import RoundToolButton
 
 class PlayerBar(SimpleCardWidget):
     togglePlayBtn = pyqtSignal()            # toggle by click play btn
@@ -28,13 +30,6 @@ class PlayerBar(SimpleCardWidget):
        
     def __init_ui(self) -> None:
         self.setFixedHeight(80)
-        self.setBorderRadius(16)
-        self.setStyleSheet("""
-            SimpleCardWidget {
-                background-color: #181818;
-                border: 1px solid rgba(255, 255, 255, 0.05);
-            }
-        """)
 
         layout = QGridLayout(self)
         layout.setContentsMargins(15, 5, 15, 5)
@@ -53,24 +48,29 @@ class PlayerBar(SimpleCardWidget):
 
     @staticmethod
     def __format_time(ms: int) -> str:
-        """Format int value in ms to str 00:00"""
-        if ms < 0: ms = 0
-        seconds = ms // 1000
-        minutes = seconds // 60
-        secs = seconds % 60
-        return f"{minutes:02d}:{secs:02d}"
+        """Format milliseconds to 'MM:SS' or 'H:MM:SS'."""
+        if ms < 0:
+            ms = 0
+
+        total_seconds = ms // 1000
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        seconds = total_seconds % 60
+
+        if hours > 0:
+            return f"{hours}:{minutes:02d}:{seconds:02d}"
+        return f"{minutes:02d}:{seconds:02d}"
 
 
     def __create_info_panel(self) -> QHBoxLayout:
         """Set parameters for info panel (album icon, song name, artist name)"""
         info_layout = QHBoxLayout()
 
-        # Cover lable
-        self.cover = QLabel()
+        # Cover label: RoundedImageLabel clips QPixmap to rounded corners.
+        self.cover = RoundedImageLabel(radius=4)
         self.cover.setFixedSize(60, 60)
         self.cover.setAlignment(Qt.AlignCenter)
-        self.cover.setText("No Cover")
-        self.cover.setStyleSheet("color: #555; background: #111; border-radius: 4px")
+        self.__set_default_cover()
         
         texts = QVBoxLayout()
         self.song_title = MarqueeLabel("No track selected")
@@ -89,10 +89,22 @@ class PlayerBar(SimpleCardWidget):
     
 
     def __set_default_cover(self):
-        """Set 'No Cover' in self.cover."""
-        self.cover.clear()
-        self.cover.setText("No Cover")
-        self.cover.setStyleSheet("color: #555; background: #111; border-radius: 4px;")
+        """Set rounded 'No Cover' placeholder pixmap."""
+        pixmap = QPixmap(60, 60)
+        pixmap.fill(QColor("#222222"))
+
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.TextAntialiasing)
+
+        font = painter.font()
+        font.setPointSize(9)
+        painter.setFont(font)
+        painter.setPen(QColor("#555555"))
+        painter.drawText(pixmap.rect(), Qt.AlignCenter, "No Cover")
+        painter.end()
+
+        self.cover.setPixmap(pixmap)
 
 
     def __create_control_panel(self) -> QVBoxLayout:
@@ -105,20 +117,7 @@ class PlayerBar(SimpleCardWidget):
 
         self.prev_button = TransparentToolButton(FIF.CARE_LEFT_SOLID)
         self.prev_button.setFixedSize(30, 30)
-        self.play_button = TransparentToolButton(FIF.PLAY)
-        self.play_button.setFixedSize(30, 30)
-        self.play_button.setStyleSheet("""
-            TransparentToolButton {
-                background-color: #1DB954;
-                border-radius: 15px;
-            }
-            TransparentToolButton:hover {
-                background-color: #1DB954;
-            }
-            TransparentToolButton:pressed {
-                background-color: #169c46;
-            }
-        """)
+        self.play_button = RoundToolButton(FIF.PLAY, size=30)
         self.play_button.clicked.connect(self.__on_play_clicked)
         self.next_button = TransparentToolButton(FIF.CARE_RIGHT_SOLID)
         self.next_button.setFixedSize(30, 30)
@@ -265,9 +264,9 @@ class PlayerBar(SimpleCardWidget):
         Updates the button icon.
         """
         if is_playing:
-            self.play_button.setIcon(FIF.PAUSE)
+            self.play_button.set_fluent_icon(FIF.PAUSE)
         else:
-            self.play_button.setIcon(FIF.PLAY)
+            self.play_button.set_fluent_icon(FIF.PLAY)
 
 
     def _update_progress_slider(self, current_ms: int, total_ms: int):
@@ -355,7 +354,7 @@ class PlayerBar(SimpleCardWidget):
 
 
     def paintEvent(self, event):
-        """Override paintEvent to forced painting black background"""
+        """PlayerBar is intentionally rendered as a flat black rectangle."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         painter.fillRect(self.rect(), QColor("#000000"))

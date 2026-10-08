@@ -59,5 +59,5 @@ exe = EXE(
     strip=False,
     upx=True,
     console=False,
-    icon=os.path.join(os.getcwd(), 'app', 'assets', 'icon.ico')
+    icon=os.path.join(SPECPATH, 'app', 'assets', 'icon.ico')
 )

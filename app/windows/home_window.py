@@ -2,7 +2,7 @@
 from pathlib import Path
 from typing import Optional
 
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QMenu, QAction, QFrame
 
@@ -14,6 +14,7 @@ from qfluentwidgets import (
 from app.components import FolderListItem, SongListItem, PlayerBar, QueueWindow
 from app.components.playlist_track_container import PlaylistTrackContainer
 from app.components.playlist_badge import PlaylistBadge
+from app.components.round_tool_button import RoundToolButton
 from app.core.app_state import AppState
 from app.core.metadata_reader import MetadataReader
 from app.core.playlist import Playlist
@@ -55,6 +56,7 @@ class HomeWindow(QWidget):
         self.main_vert_layout.setSpacing(0)
 
         self.main_container = QWidget()
+        self.main_container.setAttribute(Qt.WA_StyledBackground, True)
         self.main_container.setContentsMargins(8, 8, 8, 8)
         self.main_container.setStyleSheet("background: #000000; border: none;")
         self.main_horiz_layout = QHBoxLayout()
@@ -275,16 +277,7 @@ class HomeWindow(QWidget):
         back_btn.clicked.connect(self.show_browser)
         controls.addWidget(back_btn)
 
-        play_btn = TransparentToolButton(FluentIcon.PLAY)
-        play_btn.setFixedSize(44, 44)
-        play_btn.setStyleSheet("""
-            TransparentToolButton {
-                background-color: #1DB954;
-                border-radius: 22px;
-            }
-            TransparentToolButton:hover { background-color: #1ed760; }
-            TransparentToolButton:pressed { background-color: #169c46; }
-        """)
+        play_btn = RoundToolButton(FluentIcon.PLAY, size=44)
         play_btn.clicked.connect(lambda: self.playlist_play_requested.emit(playlist.id))
         controls.addWidget(play_btn)
 
