@@ -1,21 +1,103 @@
-#main.py
+import faulthandler
+import logging
+import os
 import sys
+import threading
 import traceback
+from datetime import datetime
+from pathlib import Path
 
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QApplication
 
 from app.windows import MainFluentWindow
 
+_LOG_DIR: Path | None = None
+_CRASH_STREAM = None
+
+
+def _resolve_log_dir() -> Path:
+    """
+    Resolve writable log directory.
+
+    For frozen exe: %LOCALAPPDATA%/Flacify/logs
+    For source run: ./logs
+    If not writable: fallback to TEMP/FlacifyLogs
+    """
+    if getattr(sys, "frozen", False):
+        local_appdata = os.getenv("LOCALAPPDATA")
+        base = Path(local_appdata) if local_appdata else Path.home() / "AppData" / "Local"
+        app_dir = base / "Flacify"
+    else:
+        app_dir = Path.cwd()
+
+    log_dir = app_dir / "logs"
+
+    try:
+        log_dir.mkdir(parents=True, exist_ok=True)
+        probe = log_dir / ".flacify_write_probe"
+        probe.write_text("ok", encoding="utf-8")
+        probe.unlink(missing_ok=True)
+        return log_dir
+    except OSError:
+        temp = os.getenv("TEMP") or os.getenv("TMP") or str(Path.home())
+        fallback = Path(temp) / "FlacifyLogs"
+        fallback.mkdir(parents=True, exist_ok=True)
+        return fallback
+
+
+def _install_diagnostics() -> None:
+    global _LOG_DIR, _CRASH_STREAM
+
+    _LOG_DIR = _resolve_log_dir()
+    log_file = _LOG_DIR / "flacify.log"
+    crash_file = _LOG_DIR / "crash.log"
+
+    logging.basicConfig(
+        filename=str(log_file),
+        level=logging.INFO,
+        format="%(asctime)s | %(levelname)s | %(threadName)s | %(name)s | %(message)s",
+        encoding="utf-8",
+        force=True,
+    )
+
+    logger = logging.getLogger("main")
+
+    def _excepthook(exc_type, exc, tb):
+        logger.critical("Uncaught exception", exc_info=(exc_type, exc, tb))
+        traceback.print_exception(exc_type, exc, tb)
+
+    sys.excepthook = _excepthook
+
+    if hasattr(threading, "excepthook"):
+        def _thread_excepthook(args):
+            logger.critical(
+                "Uncaught thread exception",
+                exc_info=(args.exc_type, args.exc_value, args.exc_traceback),
+            )
+
+        threading.excepthook = _thread_excepthook
+
+    try:
+        _CRASH_STREAM = open(crash_file, "a", encoding="utf-8")
+        _CRASH_STREAM.write(
+            f"\n--- run start {datetime.now().isoformat(timespec='seconds')} ---\n"
+        )
+        _CRASH_STREAM.flush()
+        faulthandler.enable(_CRASH_STREAM)
+    except OSError:
+        logger.warning("Cannot open crash log: %s", crash_file)
+
 
 def main() -> int:
-    print('__main__: start application')
+    _install_diagnostics()
+    logger = logging.getLogger("main")
+    logger.info("start application; log_dir=%s", _LOG_DIR)
 
     try:
         app = QApplication(sys.argv)
     except Exception:
-        traceback.print_exc()
-        print('Error on application start (QApplication)')
+        logger.exception("Failed to create QApplication")
         return 1
 
     font = QFont("Circular", 10)
@@ -24,21 +106,23 @@ def main() -> int:
     try:
         window = MainFluentWindow()
     except Exception:
-        traceback.print_exc()
-        print('Error on application start (MainFluentWindow)')
+        logger.exception("Failed to create MainFluentWindow")
         return 1
 
     window.setStyleSheet("background-color: #000000")
     window.show()
 
+    app.aboutToQuit.connect(lambda: logger.info("aboutToQuit"))
+
     try:
-        return app.exec_()
+        rc = app.exec_()
+        logger.info("event loop exited with code %s", rc)
+        return rc
     except Exception:
-        traceback.print_exc()
-        print('Error on closing application')
+        logger.exception("Error in Qt event loop")
         return 1
     finally:
-        print('__main__: close application')
+        logger.info("close application")
 
 
 if __name__ == "__main__":

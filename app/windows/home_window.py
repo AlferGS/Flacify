@@ -48,6 +48,7 @@ class HomeWindow(QWidget):
         self._current_playlist: Optional[Playlist] = None
         self._playlist_track_items: list[SongListItem] = []
         self._track_container = None
+        self._playlist_meta_cache: dict[Path, dict] = {}
         self.__init_ui(app_state)
 
     def __init_ui(self, app_state: AppState) -> None:
@@ -120,12 +121,9 @@ class HomeWindow(QWidget):
         metadata_map = payload.get("metadata", {})
 
         for full_path in items:
-            if not full_path.exists():
-                continue
-            if full_path.is_dir():
-                list_item = FolderListItem(full_path.name)
-            else:
-                meta = metadata_map.get(full_path, {})
+            # metadata_map contains only files. If path is not there, treat it as folder.
+            if full_path in metadata_map:
+                meta = metadata_map[full_path]
                 list_item = SongListItem(
                     file_name=full_path.name,
                     song_name=meta.get("title", full_path.stem),
@@ -137,8 +135,14 @@ class HomeWindow(QWidget):
                 list_item.context_menu_requested.connect(
                     lambda pos, p=full_path: self.add_to_playlist_requested.emit(p, pos)
                 )
-            list_item.itemClicked.connect(lambda checked, p=full_path: self.itemClicked.emit(p))
+            else:
+                list_item = FolderListItem(full_path.name)
+
+            list_item.itemClicked.connect(
+                lambda checked, p=full_path: self.itemClicked.emit(p)
+            )
             self.view_layout.addWidget(list_item)
+
         self.view_layout.addStretch(1)
 
     def _onDirectoryLoaded(self, payload: dict):
@@ -309,11 +313,21 @@ class HomeWindow(QWidget):
         self.view_layout.addWidget(divider)
         self.view_layout.addSpacing(8)
 
+    def _get_playlist_meta(self, path: Path) -> dict:
+        """Cached metadata for playlist rendering (avoids re-reading on every
+        add/remove/reorder rebuild). First open of a large playlist is still
+        synchronous; full async loading is tracked separately as N4b."""
+        meta = self._playlist_meta_cache.get(path)
+        if meta is None:
+            meta = MetadataReader.get_metadata(path)
+            self._playlist_meta_cache[path] = meta
+        return meta
+
     def __render_playlist_tracks(self, playlist: Playlist) -> None:
         """Render playlist tracks as SongListItem rows inside a drag&drop container."""
         items = []
         for track_index, track in enumerate(playlist.tracks):
-            meta = MetadataReader.get_metadata(track.path)
+            meta = self._get_playlist_meta(track.path)
             item = SongListItem(
                 file_name=track.path.name,
                 song_name=meta.get("title", track.path.stem),

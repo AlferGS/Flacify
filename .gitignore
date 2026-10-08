@@ -11,5 +11,6 @@ app/windows/__pycache__/
 __pycache__/
 *.pyc
 music/
+logs/
 config.json
 *.json
